@@ -1,5 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { insertMissing } from '../api/records';
+import { ImportDialog } from '../components/ImportDialog';
 import { download, parseBackup, today, toCsv } from '../domain/records';
 import { TitleBar } from '../components/parts';
 import { useToast } from '../components/Toast';
@@ -9,6 +10,7 @@ export function SettingsView() {
   const { records, role, canEdit, reload, openEditor } = useWorkspace();
   const toast = useToast();
   const file = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
 
   async function restore(f: File | undefined) {
     if (!f) return;
@@ -60,9 +62,14 @@ export function SettingsView() {
               ↓ Sao lưu JSON
             </button>
             {role === 'admin' && (
-              <button className="btn" onClick={() => file.current?.click()}>
-                ↑ Nhập từ bản sao lưu
-              </button>
+              <>
+                <button className="primary" onClick={() => setImporting(true)}>
+                  ⇪ Nhập từ Excel / Google Sheets
+                </button>
+                <button className="btn" onClick={() => file.current?.click()}>
+                  ↑ Nhập từ bản sao lưu
+                </button>
+              </>
             )}
           </div>
           <input ref={file} type="file" accept="application/json" hidden onChange={(e) => void restore(e.target.files?.[0])} />
@@ -81,6 +88,13 @@ export function SettingsView() {
       <div className="notice">
         Dấu tích ship gốc được giữ để đối chiếu, chưa xác định ai trả phí. Trạng thái “Đã gửi hàng” chưa có nghĩa khách đã nhận. Nhập từ bản sao lưu chỉ thêm hồ sơ mới, không ghi đè hồ sơ đã có.
       </div>
+      {importing && (
+        <ImportDialog
+          existingIds={new Set(records.map((r) => r.id))}
+          onImported={reload}
+          onClose={() => setImporting(false)}
+        />
+      )}
     </>
   );
 }

@@ -1,0 +1,44 @@
+# Muốn bật CI: chép file này thành .github/workflows/ci.yml
+# (tạo bằng giao diện web GitHub: Add file → Create new file, hoặc push bằng token có quyền "workflow").
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Cài thư viện
+        run: npm ci
+
+      - name: Kiểm thử
+        run: npm test
+
+      - name: Kiểm tra kiểu và build
+        run: npm run build
+        env:
+          # Giá trị giả: build không cần khóa thật, tránh để bí mật trong CI.
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
+
+      - name: Quét lỗ hổng thư viện chạy thật (chỉ cảnh báo)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true

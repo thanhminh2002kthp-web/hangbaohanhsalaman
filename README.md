@@ -40,6 +40,17 @@ Lần đầu: đăng nhập bằng tài khoản admin ở bước 4. Vào **Qu�
 
 Import repo, framework **Vite**, thêm hai biến môi trường `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY`.
 
+## CI/CD
+
+- **Bật workflow:** hai file mẫu nằm ở `ci-templates/`. GitHub không cho token thường tạo file trong `.github/workflows/`, nên hãy tạo chúng bằng giao diện web GitHub (Add file → Create new file → đường dẫn `.github/workflows/ci.yml`, dán nội dung) hoặc push bằng token có quyền `workflow`.
+- **CI** (`ci-templates/ci.yml`): mỗi lần push lên `main` hoặc mở Pull Request, GitHub tự chạy `npm ci`, `npm test`, `npm run build` (gồm kiểm tra kiểu TypeScript) và quét lỗ hổng. Không cần secret.
+- **CD web**: Vercel tự deploy mỗi khi có commit mới lên `main` (và tạo bản xem thử cho mỗi Pull Request). Để chỉ deploy khi CI xanh: bật **Branch protection** cho `main` (Settings → Branches → Require status checks → chọn *Test & Build*) và làm việc qua Pull Request.
+- **CD Edge Function** (`ci-templates/deploy-edge-function.yml`): khi file trong `supabase/functions/` đổi, tự deploy `admin-users`. Cần 2 secret ở GitHub → Settings → Secrets and variables → Actions:
+  - `SUPABASE_ACCESS_TOKEN`: tạo ở supabase.com/dashboard/account/tokens
+  - `SUPABASE_PROJECT_REF`: chuỗi trong URL project (`https://<ref>.supabase.co`)
+  Chưa khai báo thì workflow tự bỏ qua.
+- Thay đổi cấu trúc bảng (`schema.sql`) **không** tự chạy; hãy chạy tay trong SQL Editor để tránh làm hỏng dữ liệu thật.
+
 ## Phân quyền
 
 | Quyền   | Xem | Thêm/sửa hồ sơ | Quản lý tài khoản |

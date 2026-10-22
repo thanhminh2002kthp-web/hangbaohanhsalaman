@@ -1,0 +1,4 @@
+project_id = "salaman-bao-hanh"
+
+[functions.admin-users]
+verify_jwt = true

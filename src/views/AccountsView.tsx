@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { listMembers, upsertMember } from '../api/members';
+import { createAccount, listMembers, resetPassword, upsertMember } from '../api/members';
 import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../components/Toast';
 import type { Member, Role } from '../types';
@@ -12,7 +12,9 @@ export function AccountsView() {
   const [members, setMembers] = useState<Member[] | null>(null);
   const [error, setError] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<Role>('editor');
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -23,20 +25,33 @@ export function AccountsView() {
   }, []);
   useEffect(() => void load(), [load]);
 
-  async function update(m: Member) {
+  async function run(action: () => Promise<void>, done: string) {
+    setBusy(true);
     try {
-      await upsertMember(m);
-      toast('Đã cập nhật quyền.');
+      await action();
+      toast(done);
       await load();
+      return true;
     } catch (e) {
       toast((e as Error).message);
+      return false;
+    } finally {
+      setBusy(false);
     }
   }
 
   async function add(e: FormEvent) {
     e.preventDefault();
-    await update({ email: newEmail, role: newRole, active: true });
-    setNewEmail('');
+    const ok = await run(() => createAccount(newEmail, newPassword, newRole), 'Đã tạo tài khoản ' + newEmail.trim().toLowerCase());
+    if (ok) {
+      setNewEmail('');
+      setNewPassword('');
+    }
+  }
+
+  function setPassword(m: Member) {
+    const pw = prompt('Mật khẩu mới cho ' + m.email + ' (tối thiểu 8 ký tự):');
+    if (pw) void run(() => resetPassword(m.email, pw), 'Đã đặt lại mật khẩu cho ' + m.email);
   }
 
   if (error) return <div className="notice">{error}</div>;
@@ -48,22 +63,23 @@ export function AccountsView() {
         <div>
           <div className="eyebrow">QUẢN TRỊ ỨNG DỤNG</div>
           <h1>Quản lý tài khoản</h1>
-          <p>Chỉ quản trị viên được thêm Gmail, đổi quyền và khóa tài khoản.</p>
+          <p>Chỉ quản trị viên được tạo tài khoản, đổi quyền, đặt lại mật khẩu và khóa tài khoản.</p>
         </div>
       </div>
       <div className="notice">
-        Thêm email ở đây là cấp quyền sử dụng ứng dụng. Người được thêm cần tự bấm “Tạo tài khoản” ở màn hình đăng nhập bằng đúng email này (hoặc bạn tạo người dùng trong Supabase → Authentication). Hệ thống không gửi thư mời.
+        Hệ thống nội bộ: không ai tự đăng ký được. Bạn tạo tài khoản ở đây rồi gửi email và mật khẩu cho nhân viên qua kênh riêng; nên dùng mật khẩu tạm và nhờ nhân viên giữ kín.
       </div>
       <div className="panel">
-        <h2>Thêm Gmail</h2>
+        <h2>Tạo tài khoản mới</h2>
         <form className="filters" onSubmit={add}>
-          <input type="email" required placeholder="nhanvien@gmail.com" aria-label="Gmail nhân viên" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+          <input type="email" required placeholder="nhanvien@gmail.com" aria-label="Email nhân viên" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+          <input type="text" required minLength={8} placeholder="Mật khẩu (tối thiểu 8 ký tự)" aria-label="Mật khẩu" autoComplete="off" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
           <select aria-label="Quyền tài khoản" value={newRole} onChange={(e) => setNewRole(e.target.value as Role)}>
             <option value="editor">Xem và chỉnh sửa đơn</option>
             <option value="viewer">Chỉ xem</option>
           </select>
-          <button className="primary" type="submit">
-            Thêm quyền
+          <button className="primary" type="submit" disabled={busy}>
+            {busy ? 'Đang tạo…' : 'Tạo tài khoản'}
           </button>
         </form>
       </div>
@@ -72,7 +88,7 @@ export function AccountsView() {
           <table>
             <thead>
               <tr>
-                <th>GMAIL</th>
+                <th>EMAIL</th>
                 <th>QUYỀN</th>
                 <th>TRẠNG THÁI</th>
                 <th>THAO TÁC</th>
@@ -94,14 +110,14 @@ export function AccountsView() {
                         '—'
                       ) : (
                         <>
-                          <button
-                            className="link"
-                            onClick={() => confirm((m.active ? 'Khóa' : 'Mở lại') + ' quyền của ' + m.email + '?') && void update({ ...m, active: !m.active })}
-                          >
+                          <button className="link" disabled={busy} onClick={() => confirm((m.active ? 'Khóa' : 'Mở lại') + ' quyền của ' + m.email + '?') && void run(() => upsertMember({ ...m, active: !m.active }), 'Đã cập nhật quyền.')}>
                             {m.active ? 'Khóa' : 'Mở lại'}
                           </button>
-                          <button className="link" onClick={() => void update({ ...m, role: m.role === 'editor' ? 'viewer' : 'editor' })}>
+                          <button className="link" disabled={busy} onClick={() => void run(() => upsertMember({ ...m, role: m.role === 'editor' ? 'viewer' : 'editor' }), 'Đã cập nhật quyền.')}>
                             {m.role === 'editor' ? 'Chuyển chỉ xem' : 'Cho chỉnh sửa'}
+                          </button>
+                          <button className="link" disabled={busy} onClick={() => setPassword(m)}>
+                            Đặt mật khẩu
                           </button>
                         </>
                       )}

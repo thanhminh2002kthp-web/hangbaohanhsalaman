@@ -19,9 +19,11 @@ supabase/schema.sql   bảng, trigger, chính sách RLS
 
 1. Tạo project tại https://supabase.com (nên dùng gói Pro cho dữ liệu thật để có sao lưu tự động).
 2. Mở `supabase/schema.sql`, **đổi email quản trị ở cuối file** thành Gmail của bạn (viết thường), rồi dán toàn bộ vào **SQL Editor → Run**.
-3. **Authentication → Providers → Email**: bật đăng nhập bằng email + mật khẩu. Nếu muốn nhân viên tự tạo tài khoản thì giữ bật "Allow new users to sign up" (họ vẫn không xem được dữ liệu nếu email chưa được thêm ở trang *Quản lý tài khoản*).
-4. **Project Settings → API**: lấy `Project URL` và khóa `anon` / `publishable`.
-5. Sao chép `.env.example` thành `.env` và điền hai giá trị. **Không dùng khóa `service_role` trong web.**
+3. **Authentication → Sign In / Providers**: bật Email, và **TẮT "Allow new users to sign up"** (hệ thống nội bộ, không ai tự đăng ký được). Tắt luôn "Confirm email" cho gọn.
+4. **Tạo admin đầu tiên**: Authentication → Users → Add user → *Create new user* với đúng email đã ghi trong SQL, đặt mật khẩu, tick *Auto Confirm User*.
+5. **Deploy Edge Function** để admin tạo tài khoản ngay trong app: Edge Functions → *Deploy a new function* → đặt tên `admin-users` → dán nội dung `supabase/functions/admin-users/index.ts` → Deploy. (Hoặc dùng CLI: `supabase functions deploy admin-users`.) Function tự có khóa `service_role` ở phía máy chủ; web không bao giờ giữ khóa này.
+6. **Project Settings → API**: lấy `Project URL` và khóa `anon` / `publishable`.
+7. Sao chép `.env.example` thành `.env` và điền hai giá trị. **Không dùng khóa `service_role` trong web.**
 
 ## Chạy
 
@@ -32,7 +34,7 @@ npm test         # kiểm thử logic nghiệp vụ
 npm run build    # build bản chạy thật vào dist/
 ```
 
-Lần đầu: mở web, chọn **Tạo tài khoản** với đúng email quản trị đã ghi trong SQL, xác nhận email (nếu bật), rồi đăng nhập. Vào **Quản lý tài khoản** để thêm nhân viên.
+Lần đầu: đăng nhập bằng tài khoản admin ở bước 4. Vào **Quản lý tài khoản** để tạo tài khoản nhân viên, đổi quyền, khóa hoặc đặt lại mật khẩu.
 
 ## Triển khai Vercel
 

@@ -18,6 +18,28 @@ export async function myMembership(email: string): Promise<{ role: Role } | null
   return data && data.active ? { role: data.role as Role } : null;
 }
 
+/** Gọi Edge Function admin-users (tạo tài khoản / đặt lại mật khẩu). */
+async function callAdminFunction(body: Record<string, string>): Promise<void> {
+  const { error } = await supabase.functions.invoke('admin-users', { body });
+  if (!error) return;
+  let message = error.message;
+  const res = (error as { context?: Response }).context;
+  if (res && typeof res.json === 'function') {
+    try {
+      message = (await res.json()).error ?? message;
+    } catch {
+      /* giữ message mặc định */
+    }
+  }
+  throw new ApiError(message);
+}
+
+export const createAccount = (email: string, password: string, role: Role) =>
+  callAdminFunction({ action: 'create', email, password, role });
+
+export const resetPassword = (email: string, password: string) =>
+  callAdminFunction({ action: 'reset', email, password });
+
 export async function upsertMember(m: Member): Promise<void> {
   const { error } = await supabase
     .from('members')

@@ -23,8 +23,7 @@ export function SetupNeeded() {
 }
 
 export function LoginScreen() {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<'in' | 'up'>('in');
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -36,39 +35,21 @@ export function LoginScreen() {
     e.preventDefault();
     setBusy(true);
     setMessage('');
-    const result = await (mode === 'in' ? signIn : signUp)(email, password);
-    setMessage(result ?? '');
+    setMessage((await signIn(email, password)) ?? '');
     setBusy(false);
   }
 
   return (
-    <Card title={mode === 'in' ? 'Đăng nhập để tiếp tục' : 'Tạo tài khoản'}>
-      <p>
-        {mode === 'in'
-          ? 'Dùng email đã được quản trị viên cấp quyền.'
-          : 'Dùng đúng email mà quản trị viên đã thêm vào danh sách. Có tài khoản chưa đủ để xem dữ liệu nếu email chưa được cấp quyền.'}
-      </p>
+    <Card title="Đăng nhập để tiếp tục">
+      <p>Hệ thống nội bộ. Dùng tài khoản do quản trị viên cấp; nếu chưa có hoặc quên mật khẩu, hãy liên hệ quản trị viên.</p>
       <form onSubmit={submit} className="authform">
         <input type="email" required placeholder="email@gmail.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input
-          type="password"
-          required
-          minLength={8}
-          placeholder="Mật khẩu (tối thiểu 8 ký tự)"
-          autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <input type="password" required placeholder="Mật khẩu" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         {message && <div className="notice">{message}</div>}
         <button className="primary" type="submit" disabled={busy}>
-          {busy ? 'Đang xử lý…' : mode === 'in' ? 'Đăng nhập' : 'Tạo tài khoản'}
+          {busy ? 'Đang xử lý…' : 'Đăng nhập'}
         </button>
       </form>
-      <p style={{ marginTop: 16 }}>
-        <button className="link" onClick={() => { setMode(mode === 'in' ? 'up' : 'in'); setMessage(''); }}>
-          {mode === 'in' ? 'Chưa có tài khoản? Tạo tài khoản' : 'Đã có tài khoản? Đăng nhập'}
-        </button>
-      </p>
     </Card>
   );
 }
@@ -78,7 +59,7 @@ export function NoAccessScreen() {
   return (
     <Card title="Chưa được cấp quyền">
       <p>
-        Tài khoản <b>{email}</b> chưa được quản trị viên cấp quyền, hoặc đã bị khóa. Hãy gửi email này cho quản trị viên để được thêm vào danh sách.
+        Tài khoản <b>{email}</b> chưa được quản trị viên cấp quyền, hoặc đã bị khóa. Hãy liên hệ quản trị viên.
       </p>
       <div className="actions" style={{ marginTop: 22 }}>
         <button className="btn" onClick={() => void recheck()}>

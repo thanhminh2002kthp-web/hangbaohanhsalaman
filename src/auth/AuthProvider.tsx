@@ -10,7 +10,6 @@ interface AuthValue {
   email: string;
   role: Role | null;
   signIn(email: string, password: string): Promise<string | null>;
-  signUp(email: string, password: string): Promise<string | null>;
   signOut(): Promise<void>;
   recheck(): Promise<void>;
 }
@@ -67,11 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signIn(e, p) {
         const { error } = await supabase.auth.signInWithPassword({ email: e.trim(), password: p });
         return error ? 'Email hoặc mật khẩu không đúng.' : null;
-      },
-      async signUp(e, p) {
-        const { data, error } = await supabase.auth.signUp({ email: e.trim(), password: p });
-        if (error) return error.message;
-        return data.session ? null : 'Đã tạo tài khoản. Hãy mở email để xác nhận rồi đăng nhập.';
       },
       async signOut() {
         await supabase.auth.signOut();

@@ -24,3 +24,15 @@ input::placeholder,textarea::placeholder{color:#000;opacity:1}
 
 /* Giữ tên thương hiệu gọn trong thanh bên ở màn hình vừa. */
 @media(min-width:651px) and (max-width:1000px){.brand>span{font-size:25px}.brand small{font-size:9px;letter-spacing:0}}
+
+/* Cột số điện thoại riêng và các hàng hồ sơ có cùng chiều cao. */
+.records-table{table-layout:fixed;min-width:1120px}
+.records-table-cost{min-width:1240px}
+.records-table th,.records-table td{max-width:none;vertical-align:middle;overflow-wrap:anywhere}
+.records-table tbody tr{height:120px}
+.records-table td strong,.records-table td .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.records-table .customer-phone{white-space:nowrap;font-variant-numeric:tabular-nums}
+.record-product{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.7}
+.records-table .record-reason{display:block}
+.records-table td:last-child .link{padding:0;line-height:1.5}
+@media print{.records-table,.records-table-cost{min-width:0}.records-table tbody tr{height:auto}}

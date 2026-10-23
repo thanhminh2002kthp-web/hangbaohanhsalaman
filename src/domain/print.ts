@@ -25,7 +25,7 @@ export function printRecord(r: WarrantyRecord): boolean {
     ['Ghi chú', r.note]
   ];
   w.document.write(
-    '<meta charset="utf-8"><title>Phiếu bảo hành</title><style>body{font-family:Arial,Helvetica,sans-serif}</style>' +
+    '<meta charset="utf-8"><title>Phiếu bảo hành</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff}</style>' +
       `<h1>SALAMAN · Phiếu bảo hành ${esc(r.id)}</h1>` +
       rows.map(([l, v]) => `<p><b>${l}: </b>${esc(v)}</p>`).join('')
   );

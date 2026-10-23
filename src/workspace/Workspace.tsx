@@ -93,7 +93,6 @@ export function Workspace() {
     <WorkspaceCtx.Provider value={ctx}>
       <aside>
         <a className="brand" href="#">
-          S
           <span>
             SALAMAN<small>TRUNG TÂM BẢO HÀNH</small>
           </span>

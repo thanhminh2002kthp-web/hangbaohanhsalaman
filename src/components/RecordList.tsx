@@ -55,11 +55,17 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
   return (
     <div className="panel tablepanel">
       <div className="tablewrap">
-        <table>
+        <table className={cost ? 'records-table records-table-cost' : 'records-table'}>
+          <colgroup>
+            {(cost ? [16, 16, 13, 22, 9, 9, 9, 6] : [17, 17, 14, 23, 12, 11, 6]).map((width, i) => (
+              <col key={i} style={{ width: `${width}%` }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               <th>HỒ SƠ / NGÀY NHẬN</th>
               <th>KHÁCH HÀNG / KÊNH</th>
+              <th>SĐT KHÁCH HÀNG</th>
               <th>SẢN PHẨM</th>
               {cost ? (
                 <>
@@ -79,7 +85,7 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
           <tbody>
             {shown.length === 0 && (
               <tr>
-                <td colSpan={8} className="empty">
+                <td colSpan={cost ? 8 : 7} className="empty">
                   Không có hồ sơ phù hợp.
                 </td>
               </tr>
@@ -94,13 +100,13 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
                 <td>
                   <strong>{r.customer || 'Chưa có tên'}</strong>
                   <span className="sub">
-                    <ChannelBadge value={r.channel} /> <span className="channel-phone">{r.phone}</span>
+                    <ChannelBadge value={r.channel} />
                   </span>
                 </td>
-                <td title={r.product}>
-                  {r.product.slice(0, 88)}
-                  {r.product.length > 88 ? '…' : ''}
-                  <span className="sub">{r.reason.slice(0, 60)}</span>
+                <td className="customer-phone">{r.phone || '—'}</td>
+                <td title={[r.product, r.reason].filter(Boolean).join(' — ')}>
+                  <div className="record-product">{r.product || '—'}</div>
+                  <span className="sub record-reason">{r.reason}</span>
                 </td>
                 {cost ? (
                   <>

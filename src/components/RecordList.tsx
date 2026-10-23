@@ -57,7 +57,7 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
       <div className="tablewrap">
         <table className={cost ? 'records-table records-table-cost' : 'records-table'}>
           <colgroup>
-            {(cost ? [16, 16, 13, 22, 9, 9, 9, 6] : [17, 17, 14, 23, 12, 11, 6]).map((width, i) => (
+            {(cost ? [15, 14, 12, 24, 9, 9, 10, 7] : [15, 14, 12, 27, 12, 13, 7]).map((width, i) => (
               <col key={i} style={{ width: `${width}%` }} />
             ))}
           </colgroup>

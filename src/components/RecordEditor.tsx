@@ -18,8 +18,8 @@ interface Props {
 type Draft = Omit<WarrantyRecord, MoneyKey> & Record<MoneyKey, string>;
 
 const MONEY_LABELS: [string, MoneyKey][] = [
-  ['Ship thu hồi', 'shipIn'],
-  ['Ship giao khách', 'shipOut'],
+  ['Người gửi trả phí', 'shipIn'],
+  ['Người nhận trả phí', 'shipOut'],
   ['Giá vốn hàng đổi / linh kiện', 'parts'],
   ['Công xử lý', 'labor'],
   ['Chi khác', 'other'],

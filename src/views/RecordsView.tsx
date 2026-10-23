@@ -28,7 +28,7 @@ export function RecordsView({ mode }: { mode: 'records' | 'costs' }) {
       {cost && (
         <>
           <div className="notice">
-            Cột “Phí ship” trong bảng gốc là dấu tích, không phải số tiền. Các khoản chưa nhập không được coi là chi phí đã xác nhận. Chi phí ròng = ship thu hồi + ship giao + hàng thay / linh kiện + công xử lý + chi khác + hoàn tiền − thu thêm.
+            Cột “Phí ship” trong bảng gốc là dấu tích, không phải số tiền. Các khoản chưa nhập không được coi là chi phí đã xác nhận. Chi phí ròng = người gửi trả phí + người nhận trả phí + hàng thay / linh kiện + công xử lý + chi khác + hoàn tiền − thu thêm.
           </div>
           <div className="stats">
             <Stat feature label="CHI ĐÃ ĐỐI SOÁT" value={money(reviewed.reduce((s, r) => s + fee(r), 0))} sub="Theo bộ lọc hiện tại" />

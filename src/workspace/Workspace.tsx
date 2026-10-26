@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { listRecords, saveRecord } from '../api/records';
 import { useAuth } from '../auth/AuthProvider';
+import { NavIcon } from '../components/NavIcon';
 import { RecordEditor } from '../components/RecordEditor';
 import { useToast } from '../components/Toast';
 import { emptyRecord } from '../domain/records';
@@ -23,13 +24,7 @@ const LABELS: Record<View, string> = {
   accounts: 'Quản lý tài khoản'
 };
 
-const NAV: [View, string][] = [
-  ['overview', '◈'],
-  ['records', '▤'],
-  ['costs', '₫'],
-  ['reports', '▥'],
-  ['settings', '⚙']
-];
+const NAV: View[] = ['overview', 'records', 'costs', 'reports', 'settings'];
 
 const REFRESH_MS = 30000;
 
@@ -99,7 +94,7 @@ export function Workspace() {
     await reload();
   }
 
-  const nav: [View, string][] = role === 'admin' ? [...NAV, ['accounts', '♙']] : NAV;
+  const nav: View[] = role === 'admin' ? [...NAV, 'accounts'] : NAV;
 
   return (
     <WorkspaceCtx.Provider value={ctx}>
@@ -111,9 +106,10 @@ export function Workspace() {
         </a>
         <div className="navlabel">KHÔNG GIAN LÀM VIỆC</div>
         <nav>
-          {nav.map(([v, icon]) => (
+          {nav.map((v) => (
             <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>
-              {icon} &nbsp; {LABELS[v]}
+              <NavIcon name={v} />
+              <span>{LABELS[v]}</span>
             </button>
           ))}
         </nav>

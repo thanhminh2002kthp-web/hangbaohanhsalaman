@@ -8,6 +8,9 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .rule-fail,.field-error{color:#b3382c;font-weight:500;font-size:13px}
 input[aria-invalid="true"]{border-color:#b3382c}
 .link.danger{color:#b3382c}
+nav button{display:flex;align-items:center;gap:12px;line-height:1.35}
+.navicon{width:20px;height:20px;flex:none;opacity:.8}
+nav button.active .navicon,nav button:hover .navicon{opacity:1}
 .daterange{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .daterange label{font-size:12px}
 .filters .daterange input{flex:none;min-width:0;width:170px}

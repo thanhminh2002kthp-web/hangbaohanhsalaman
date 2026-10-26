@@ -40,6 +40,9 @@ export const createAccount = (email: string, password: string, role: Role) =>
 export const resetPassword = (email: string, password: string) =>
   callAdminFunction({ action: 'reset', email, password });
 
+/** Xóa vĩnh viễn tài khoản đăng nhập và quyền của nhân viên (admin khác và chính mình không xóa được). */
+export const deleteAccount = (email: string) => callAdminFunction({ action: 'delete', email });
+
 export async function upsertMember(m: Member): Promise<void> {
   const { error } = await supabase
     .from('members')

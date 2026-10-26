@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { createAccount, listMembers, resetPassword, upsertMember } from '../api/members';
+import { createAccount, deleteAccount, listMembers, resetPassword, upsertMember } from '../api/members';
 import { useAuth } from '../auth/AuthProvider';
 import { AccountModal, type AccountForm } from '../components/AccountModal';
 import { useToast } from '../components/Toast';
@@ -106,6 +106,17 @@ export function AccountsView() {
                           </button>
                           <button className="link" disabled={busy} onClick={() => setModal({ mode: 'reset', email: m.email })}>
                             Đặt mật khẩu
+                          </button>
+                          <button
+                            className="link danger"
+                            disabled={busy}
+                            onClick={() =>
+                              confirm(
+                                'Xóa vĩnh viễn tài khoản ' + m.email + '?\n\nNgười này sẽ không đăng nhập được nữa và không thể khôi phục. Các hồ sơ họ đã tạo hoặc sửa vẫn được giữ, lịch sử vẫn ghi tên email này.\n\nNếu chỉ muốn tạm ngưng, hãy dùng "Khóa".'
+                              ) && void run(() => deleteAccount(m.email), 'Đã xóa tài khoản ' + m.email)
+                            }
+                          >
+                            Xóa
                           </button>
                         </>
                       )}

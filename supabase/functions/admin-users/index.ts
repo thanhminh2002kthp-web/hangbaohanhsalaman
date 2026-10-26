@@ -43,6 +43,18 @@ function validatePassword(password: string): string[] {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
+/** Tìm id tài khoản đăng nhập theo email (duyệt tối đa 4000 người dùng). */
+async function findUserId(admin: ReturnType<typeof createClient>, email: string): Promise<string | undefined> {
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw new Error(error.message);
+    const found = data.users.find((u) => u.email?.toLowerCase() === email);
+    if (found) return found.id;
+    if (data.users.length < 200) break;
+  }
+  return undefined;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
@@ -65,12 +77,15 @@ Deno.serve(async (req) => {
     const email = String(body.email ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
     const role = String(body.role ?? 'editor');
+    const action = String(body.action ?? '');
     const emailError = validateEmail(email);
     if (emailError) return json({ error: emailError }, 400);
-    const passwordErrors = validatePassword(password);
-    if (passwordErrors.length) return json({ error: 'Mật khẩu chưa đạt: ' + passwordErrors.join('; ') + '.' }, 400);
+    if (action === 'create' || action === 'reset') {
+      const passwordErrors = validatePassword(password);
+      if (passwordErrors.length) return json({ error: 'Mật khẩu chưa đạt: ' + passwordErrors.join('; ') + '.' }, 400);
+    }
 
-    if (body.action === 'create') {
+    if (action === 'create') {
       if (!['editor', 'viewer'].includes(role)) return json({ error: 'Quyền không hợp lệ.' }, 400);
       const { error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
       if (error) {
@@ -82,20 +97,30 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
-    if (body.action === 'reset') {
+    if (action === 'reset') {
       const { data: target } = await admin.from('members').select('role').eq('email', email).maybeSingle();
       if (!target) return json({ error: 'Email chưa nằm trong danh sách thành viên.' }, 404);
       if (target.role === 'admin' && email !== callerEmail) return json({ error: 'Không đặt lại mật khẩu của quản trị viên khác.' }, 403);
-      let id: string | undefined;
-      for (let page = 1; !id && page <= 20; page++) {
-        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-        if (error) return json({ error: error.message }, 400);
-        id = data.users.find((u) => u.email?.toLowerCase() === email)?.id;
-        if (data.users.length < 200) break;
-      }
+      const id = await findUserId(admin, email);
       if (!id) return json({ error: 'Người này chưa có tài khoản đăng nhập.' }, 404);
       const { error } = await admin.auth.admin.updateUserById(id, { password });
       if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    if (action === 'delete') {
+      if (email === callerEmail) return json({ error: 'Không thể xóa chính tài khoản của bạn.' }, 403);
+      const { data: target } = await admin.from('members').select('role').eq('email', email).maybeSingle();
+      if (!target) return json({ error: 'Email không có trong danh sách thành viên.' }, 404);
+      if (target.role === 'admin') return json({ error: 'Không xóa tài khoản quản trị viên.' }, 403);
+      // Xóa tài khoản đăng nhập trước; nếu lỗi thì giữ nguyên danh sách thành viên.
+      const id = await findUserId(admin, email);
+      if (id) {
+        const { error } = await admin.auth.admin.deleteUser(id);
+        if (error) return json({ error: error.message }, 400);
+      }
+      const { error: memberError } = await admin.from('members').delete().eq('email', email);
+      if (memberError) return json({ error: memberError.message }, 400);
       return json({ ok: true });
     }
 

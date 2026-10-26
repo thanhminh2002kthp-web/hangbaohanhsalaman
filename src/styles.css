@@ -43,3 +43,7 @@ input::placeholder,textarea::placeholder{color:#000;opacity:1}
 .records-table td{padding:10px 8px}
 .records-table td .sub{margin-top:2px}
 .records-table td .badge{padding:3px 7px}
+
+/* Inline status editing in warranty lists. */
+.status-select{width:100%;min-width:0;padding:7px 8px;font-size:14px;background:#fff;border-color:#dce5de;border-radius:6px}
+.status-select:disabled{opacity:.65;cursor:wait}

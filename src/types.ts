@@ -60,4 +60,5 @@ export interface Filters {
   status: string;
   channel: string;
   month: string;
+  datePreset: string;
 }

@@ -3,6 +3,16 @@ import { emptyFilters, fee, money, net, PAGE_SIZE, STATUSES, uniqueChannels } fr
 import type { Filters, Status, WarrantyRecord } from '../types';
 import { ChannelBadge, PriorityBadge, StatusBadge } from './parts';
 
+const STATUS_COLOR_CLASS: Record<Status, string> = {
+  'Chờ nhận hàng': 'status-pending-shipment',
+  'Chờ kiểm tra': 'status-checking',
+  'Đang xử lý': 'status-processing',
+  'Đã gửi hàng': 'status-sent',
+  'Hoàn tất': 'status-complete',
+  'Hoàn tiền': 'status-refund',
+  'Từ chối bảo hành': 'status-rejected'
+};
+
 export function FilterBar(props: {
   filters: Filters;
   records: WarrantyRecord[];
@@ -135,14 +145,14 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
                     <td>
                       {canEdit ? (
                         <select
-                          className="status-select"
+                          className={`status-select ${STATUS_COLOR_CLASS[r.status]}`}
                           aria-label={`Trạng thái hồ sơ ${r.id}`}
                           value={r.status}
                           disabled={savingId === r.id}
                           onChange={(e) => changeStatus(r, e.target.value as Status)}
                         >
                           {STATUSES.map((status) => (
-                            <option key={status}>{status}</option>
+                            <option key={status} className={STATUS_COLOR_CLASS[status]}>{status}</option>
                           ))}
                         </select>
                       ) : (

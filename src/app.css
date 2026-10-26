@@ -2,3 +2,8 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .authcard{max-width:520px;margin:12vh auto 0}
 .authform{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 .authform .notice{margin:0}
+.rules{list-style:none;margin:-4px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.rule-ok{color:#167252}
+.rule-bad{color:#8b9b90}
+.rule-fail,.field-error{color:#b3382c;font-weight:500;font-size:13px}
+input[aria-invalid="true"]{border-color:#b3382c}

@@ -9,6 +9,37 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
+// Bản sao của src/domain/accountValidation.ts — sửa một nơi thì phải sửa nơi kia.
+const EMAIL_RE =
+  /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+
+function validateEmail(email: string): string | null {
+  const local = email.split('@')[0] ?? '';
+  if (
+    !email ||
+    email.length > 254 ||
+    local.length > 64 ||
+    local.startsWith('.') ||
+    local.endsWith('.') ||
+    email.includes('..') ||
+    !EMAIL_RE.test(email) ||
+    !/\.[a-z]{2,}$/.test(email)
+  ) {
+    return 'Email không hợp lệ.';
+  }
+  return null;
+}
+
+function validatePassword(password: string): string[] {
+  const errors: string[] = [];
+  if (password.length < 8) errors.push('tối thiểu 8 ký tự');
+  if (!/\p{L}/u.test(password)) errors.push('có chữ cái');
+  if (!/\d/.test(password)) errors.push('có chữ số');
+  if (!/[^\p{L}\d\s]/u.test(password)) errors.push('có ký tự đặc biệt');
+  if (password.length > 72) errors.push('tối đa 72 ký tự');
+  return errors;
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
@@ -34,8 +65,10 @@ Deno.serve(async (req) => {
     const email = String(body.email ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
     const role = String(body.role ?? 'editor');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'Email không hợp lệ.' }, 400);
-    if (password.length < 8) return json({ error: 'Mật khẩu tối thiểu 8 ký tự.' }, 400);
+    const emailError = validateEmail(email);
+    if (emailError) return json({ error: emailError }, 400);
+    const passwordErrors = validatePassword(password);
+    if (passwordErrors.length) return json({ error: 'Mật khẩu chưa đạt: ' + passwordErrors.join('; ') + '.' }, 400);
 
     if (body.action === 'create') {
       if (!['editor', 'viewer'].includes(role)) return json({ error: 'Quyền không hợp lệ.' }, 400);

@@ -1,9 +1,16 @@
 import { download, isInProgress, money, net, STATUSES, toCsv, today, uniqueChannels } from '../domain/records';
+import type { Status, WarrantyRecord } from '../types';
 import { ChannelBadge, Stat, TitleBar } from '../components/parts';
 import { RecordList } from '../components/RecordList';
 import { useWorkspace } from '../workspace/WorkspaceContext';
 
-export function OverviewView({ goRecords }: { goRecords(): void }) {
+export function OverviewView({
+  goRecords,
+  onStatusChange
+}: {
+  goRecords(): void;
+  onStatusChange(r: WarrantyRecord, status: Status): Promise<void>;
+}) {
   const { records, canEdit, openEditor } = useWorkspace();
   const reviewed = records.filter((r) => r.costReviewed);
   const recent = [...records].sort((a, b) => b.received.localeCompare(a.received));
@@ -68,7 +75,7 @@ export function OverviewView({ goRecords }: { goRecords(): void }) {
           Xem tất cả →
         </button>
       </div>
-      <RecordList rows={recent} paged={false} canEdit={canEdit} onOpen={openEditor} />
+      <RecordList rows={recent} paged={false} canEdit={canEdit} onOpen={openEditor} onStatusChange={onStatusChange} />
     </>
   );
 }

@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { download, emptyFilters, fee, filterRecords, money, net, num, toCsv, today } from '../domain/records';
-import type { Filters } from '../types';
+import type { Filters, Status, WarrantyRecord } from '../types';
 import { Stat, TitleBar } from '../components/parts';
 import { FilterBar, RecordList } from '../components/RecordList';
 import { useWorkspace } from '../workspace/WorkspaceContext';
 
 /** Dùng chung cho "Hồ sơ bảo hành" (mode = records) và "Chi phí & thu thêm" (mode = costs). */
-export function RecordsView({ mode }: { mode: 'records' | 'costs' }) {
+export function RecordsView({
+  mode,
+  onStatusChange
+}: {
+  mode: 'records' | 'costs';
+  onStatusChange(r: WarrantyRecord, status: Status): Promise<void>;
+}) {
   const { records, canEdit, openEditor } = useWorkspace();
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [page, setPage] = useState(1);
@@ -39,7 +45,15 @@ export function RecordsView({ mode }: { mode: 'records' | 'costs' }) {
         </>
       )}
       <FilterBar filters={filters} records={records} onChange={setFilters} />
-      <RecordList rows={rows} cost={cost} page={page} onPage={setPage} canEdit={canEdit} onOpen={openEditor} />
+      <RecordList
+        rows={rows}
+        cost={cost}
+        page={page}
+        onPage={setPage}
+        canEdit={canEdit}
+        onOpen={openEditor}
+        onStatusChange={onStatusChange}
+      />
     </>
   );
 }

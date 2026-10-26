@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferStatus, parseCsv, parseDate, rowsToRecords } from './importSheet';
+import { inferStatus, parseCsv, parseDate, planImport, rowsToRecords } from './importSheet';
 
 // Dữ liệu giả lập, cùng cấu trúc cột với bảng tổng hợp thật.
 const CSV = [
@@ -38,6 +38,61 @@ describe('inferStatus', () => {
     expect(inferStatus('SPX123', '')).toBe('Đã gửi hàng');
     expect(inferStatus('', 'đang test')).toBe('Đang xử lý');
     expect(inferStatus('', '')).toBe('Chờ kiểm tra');
+  });
+});
+
+describe('planImport (cập nhật theo file)', () => {
+  const incoming = () => rowsToRecords(parseCsv(CSV), { year: 2026 }).records;
+  const stored = () => incoming().map((r) => ({ ...r, version: 1 }));
+
+  it('không có gì khác thì không cập nhật', () => {
+    const plan = planImport(incoming(), stored());
+    expect(plan.fresh).toHaveLength(0);
+    expect(plan.updates).toHaveLength(0);
+    expect(plan.unchanged).toBe(3);
+  });
+
+  it('hồ sơ mới trong file được thêm', () => {
+    const plan = planImport(incoming(), stored().slice(0, 2));
+    expect(plan.fresh).toHaveLength(1);
+  });
+
+  it('cập nhật trạng thái và vận đơn khi file thay đổi (file là chuẩn)', () => {
+    const inc = incoming();
+    const cur = stored();
+    cur[1] = { ...cur[1], outbound: 'KHO CHƯA NHẬN HÀNG', status: 'Chờ nhận hàng' };
+    inc[1] = { ...inc[1], outbound: 'SPX999', status: 'Đã gửi hàng' };
+    const plan = planImport(inc, cur);
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0].next).toMatchObject({ outbound: 'SPX999', status: 'Đã gửi hàng', version: 1 });
+    expect(plan.updates[0].changes.map((c) => c.key)).toEqual(['status', 'outbound']);
+  });
+
+  it('không hạ trạng thái bạn đã chỉnh tay khi vận đơn/test không đổi', () => {
+    const cur = stored();
+    cur[0] = { ...cur[0], status: 'Hoàn tất' };
+    const plan = planImport(incoming(), cur);
+    expect(plan.updates).toHaveLength(0);
+  });
+
+  it('ô trống trong file không xóa dữ liệu đang có', () => {
+    const cur = stored();
+    cur[0] = { ...cur[0], note: 'đã gọi khách' };
+    expect(planImport(incoming(), cur).updates).toHaveLength(0);
+  });
+
+  it('không đổi tiền thu thêm của hồ sơ đã đối soát', () => {
+    const inc = incoming();
+    const cur = stored();
+    inc[1] = { ...inc[1], extra: 50000 };
+    cur[1] = { ...cur[1], extra: 30000, costReviewed: true };
+    expect(planImport(inc, cur).updates).toHaveLength(0);
+  });
+
+  it('ghép được hồ sơ có mã khác qua khóa nhận diện khi chỉ có một ứng viên', () => {
+    const cur = stored().map((r, i) => ({ ...r, id: 'BH-MANUAL' + i }));
+    const plan = planImport(incoming(), cur);
+    expect(plan.fresh).toHaveLength(0);
   });
 });
 

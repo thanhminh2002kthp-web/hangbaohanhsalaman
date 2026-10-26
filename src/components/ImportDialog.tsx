@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { insertMissing } from '../api/records';
-import { parseCsv, rowsToRecords, type Cell } from '../domain/importSheet';
+import { insertMissing, saveRecord } from '../api/records';
+import { parseCsv, planImport, rowsToRecords, type Cell } from '../domain/importSheet';
+import type { WarrantyRecord } from '../types';
 import { useToast } from './Toast';
 
 interface Props {
-  existingIds: Set<string>;
+  existing: WarrantyRecord[];
   onImported(): Promise<unknown>;
   onClose(): void;
 }
 
 type XlsxModule = typeof import('read-excel-file');
+type Mode = 'add' | 'update';
 
-export function ImportDialog({ existingIds, onImported, onClose }: Props) {
+const PREVIEW_LIMIT = 200;
+const CONCURRENCY = 4;
+
+export function ImportDialog({ existing, onImported, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -19,18 +24,19 @@ export function ImportDialog({ existingIds, onImported, onClose }: Props) {
   const [sheet, setSheet] = useState('');
   const [rows, setRows] = useState<Cell[][] | null>(null);
   const [year, setYear] = useState(new Date().getFullYear());
+  const [mode, setMode] = useState<Mode>('update');
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState('');
 
   useEffect(() => dialog.current?.showModal(), []);
-
-  const isCsv = (f: File) => /\.(csv|txt)$/i.test(f.name);
 
   async function loadRows(f: File, sheetName?: string) {
     setError('');
     setRows(null);
     try {
-      if (isCsv(f)) {
+      if (/\.(csv|txt)$/i.test(f.name)) {
         setRows(parseCsv(await f.text()));
         return;
       }
@@ -58,19 +64,60 @@ export function ImportDialog({ existingIds, onImported, onClose }: Props) {
   }
 
   const parsed = useMemo(() => (rows ? rowsToRecords(rows, { year }) : null), [rows, year]);
-  const fresh = parsed?.records.filter((r) => !existingIds.has(r.id)) ?? [];
-  const duplicates = (parsed?.records.length ?? 0) - fresh.length;
+  const plan = useMemo(() => (parsed ? planImport(parsed.records, existing) : null), [parsed, existing]);
+
+  // Lưu các hồ sơ bị bỏ chọn (mặc định chọn hết) để lựa chọn không mất khi dữ liệu tự tải lại.
+  const chosen = mode === 'update' && plan ? plan.updates.filter((u) => !skipped.has(u.current.id)) : [];
+  const fresh = plan?.fresh ?? [];
+  const total = fresh.length + chosen.length;
+
+  function toggle(id: string) {
+    setSkipped((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function run() {
     setBusy(true);
+    setError('');
+    let added = 0;
+    let updated = 0;
+    const failed: string[] = [];
     try {
-      const added = await insertMissing(fresh);
+      if (fresh.length) {
+        setProgress('Đang thêm hồ sơ mới…');
+        added = await insertMissing(fresh);
+      }
+      const queue = [...chosen];
+      let done = 0;
+      const worker = async () => {
+        for (let u = queue.shift(); u; u = queue.shift()) {
+          try {
+            await saveRecord(u.next);
+            updated++;
+          } catch (e) {
+            failed.push(u.current.id + ': ' + (e as Error).message);
+          }
+          setProgress(`Đang cập nhật ${++done}/${chosen.length}…`);
+        }
+      };
+      await Promise.all(Array.from({ length: CONCURRENCY }, worker));
       await onImported();
-      toast('Đã nhập ' + added + ' hồ sơ.');
+      toast(`Đã thêm ${added}, cập nhật ${updated} hồ sơ.` + (failed.length ? ` ${failed.length} hồ sơ chưa cập nhật.` : ''));
+      if (failed.length) {
+        setError('Một số hồ sơ chưa cập nhật (có thể vừa được người khác sửa). Hãy mở lại hộp thoại và nhập lần nữa:\n' + failed.slice(0, 10).join('\n'));
+        setBusy(false);
+        setProgress('');
+        return;
+      }
       dialog.current?.close();
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
+      setProgress('');
     }
   }
 
@@ -81,17 +128,17 @@ export function ImportDialog({ existingIds, onImported, onClose }: Props) {
           <div className="eyebrow">NHẬP DỮ LIỆU</div>
           <h1 style={{ fontSize: 23 }}>Nhập từ Excel / Google Sheets</h1>
         </div>
-        <button type="button" className="btn" onClick={() => dialog.current?.close()}>
+        <button type="button" className="btn" disabled={busy} onClick={() => dialog.current?.close()}>
           Đóng ×
         </button>
       </div>
 
       <p>
-        Trong Google Sheets: <b>Tệp → Tải xuống → Microsoft Excel (.xlsx)</b> hoặc <b>Giá trị phân tách bằng dấu phẩy (.csv)</b> (CSV chỉ lấy tab đang mở). Hệ thống nhận cột theo tên tiêu đề (NGÀY, SÀN, MÃ ĐƠN HÀNG…). Chỉ <b>thêm hồ sơ mới</b>, không ghi đè hồ sơ đã có; nhập lại cùng một file sẽ không bị trùng.
+        Trong Google Sheets: <b>Tệp → Tải xuống → Microsoft Excel (.xlsx)</b> hoặc <b>CSV</b> (CSV chỉ lấy tab đang mở). Hệ thống nhận cột theo tên tiêu đề (NGÀY, SÀN, MÃ ĐƠN HÀNG…).
       </p>
 
       <div className="filters">
-        <input type="file" accept=".xlsx,.csv,.txt" onChange={(e) => void pick(e.target.files?.[0])} />
+        <input type="file" accept=".xlsx,.csv,.txt" disabled={busy} onChange={(e) => void pick(e.target.files?.[0])} />
       </div>
 
       {sheets.length > 1 && (
@@ -99,6 +146,7 @@ export function ImportDialog({ existingIds, onImported, onClose }: Props) {
           Chọn tab (sheet) cần nhập
           <select
             value={sheet}
+            disabled={busy}
             onChange={(e) => {
               setSheet(e.target.value);
               if (file) void loadRows(file, e.target.value);
@@ -111,7 +159,7 @@ export function ImportDialog({ existingIds, onImported, onClose }: Props) {
         </label>
       )}
 
-      {error && <div className="notice">{error}</div>}
+      {error && <div className="notice" style={{ whiteSpace: 'pre-line' }}>{error}</div>}
 
       {parsed && parsed.headerLine === 0 && (
         <div className="notice">
@@ -119,28 +167,42 @@ export function ImportDialog({ existingIds, onImported, onClose }: Props) {
         </div>
       )}
 
-      {parsed && parsed.headerLine > 0 && (
+      {parsed && plan && parsed.headerLine > 0 && (
         <>
-          <label style={{ maxWidth: 360, margin: '16px 0' }}>
-            Năm của các ngày dạng “dd/mm” (file không ghi năm)
-            <input type="number" min={2000} max={2100} value={year} onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())} />
-          </label>
+          <div className="formgrid" style={{ margin: '16px 0' }}>
+            <label>
+              Năm của các ngày dạng “dd/mm” (file không ghi năm)
+              <input type="number" min={2000} max={2100} value={year} disabled={busy} onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())} />
+            </label>
+            <label>
+              Chế độ nhập
+              <select value={mode} disabled={busy} onChange={(e) => setMode(e.target.value as Mode)}>
+                <option value="update">Thêm mới + cập nhật hồ sơ đã có (lấy file làm chuẩn)</option>
+                <option value="add">Chỉ thêm hồ sơ mới (không đụng hồ sơ đã có)</option>
+              </select>
+            </label>
+          </div>
 
-          <div className="stats" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+          <div className="stats" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
             <div className="stat feature">
-              <small>SẼ NHẬP MỚI</small>
+              <small>THÊM MỚI</small>
               <strong>{fresh.length}</strong>
               <em>hồ sơ</em>
             </div>
             <div className="stat">
-              <small>ĐÃ CÓ, BỎ QUA</small>
-              <strong>{duplicates}</strong>
-              <em>không ghi đè</em>
+              <small>CẬP NHẬT</small>
+              <strong>{mode === 'update' ? chosen.length : 0}</strong>
+              <em>{mode === 'update' ? `trên ${plan.updates.length} hồ sơ có thay đổi` : 'đang tắt'}</em>
             </div>
             <div className="stat">
-              <small>DÒNG LỖI, BỎ QUA</small>
+              <small>GIỮ NGUYÊN</small>
+              <strong>{plan.unchanged + (mode === 'add' ? plan.updates.length : 0)}</strong>
+              <em>không có gì mới</em>
+            </div>
+            <div className="stat">
+              <small>DÒNG LỖI</small>
               <strong>{parsed.skipped.length}</strong>
-              <em>cần sửa trong file</em>
+              <em>bị bỏ qua</em>
             </div>
           </div>
 
@@ -156,14 +218,66 @@ export function ImportDialog({ existingIds, onImported, onClose }: Props) {
             </details>
           )}
 
+          {mode === 'update' && plan.updates.length > 0 && (
+            <div className="panel tablepanel" style={{ marginBottom: 16 }}>
+              <div className="panelhead">
+                <h2>Các thay đổi sẽ áp dụng</h2>
+                <div className="actions">
+                  <button className="link" onClick={() => setSkipped(new Set())}>
+                    Chọn tất cả
+                  </button>
+                  <button className="link" onClick={() => setSkipped(new Set(plan.updates.map((u) => u.current.id)))}>
+                    Bỏ chọn
+                  </button>
+                </div>
+              </div>
+              <div className="tablewrap" style={{ maxHeight: '38vh' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>HỒ SƠ</th>
+                      <th>THAY ĐỔI (hiện tại → theo file)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plan.updates.slice(0, PREVIEW_LIMIT).map((u) => (
+                      <tr key={u.current.id}>
+                        <td>
+                          <input type="checkbox" checked={!skipped.has(u.current.id)} onChange={() => toggle(u.current.id)} aria-label={'Chọn ' + u.current.id} />
+                        </td>
+                        <td>
+                          <strong>{u.current.id}</strong>
+                          <span className="sub">{u.current.order} · {u.current.customer}</span>
+                        </td>
+                        <td>
+                          {u.changes.map((c) => (
+                            <span className="sub" key={c.key}>
+                              <b>{c.label}:</b> {c.from || '—'} → {c.to || '—'}
+                            </span>
+                          ))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {plan.updates.length > PREVIEW_LIMIT && (
+                <p className="muted" style={{ padding: '0 22px 16px' }}>
+                  Chỉ hiển thị {PREVIEW_LIMIT} hồ sơ đầu; “Chọn tất cả” vẫn áp dụng cho toàn bộ {plan.updates.length} hồ sơ.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="notice">
-            Trạng thái được suy ra từ cột “MÃ VẬN ĐƠN GIAO KHÁCH” và “KẾT QUẢ TEST”, cần xác nhận lại sau khi nhập. Cột “PHÍ SHIP” trong file là dấu tích nên chỉ được lưu làm dấu, không tính thành tiền. Các khoản chi phí để trống, chưa đối soát.
+            Chế độ cập nhật chỉ đổi: trạng thái, vận đơn giao, ngày gửi, kết quả test, mẫu đổi, lý do, kênh, địa chỉ, ghi chú, dấu tích ship, tiền thu thêm. Ô trống trong file không xóa dữ liệu đang có. Trạng thái chỉ đổi khi vận đơn giao hoặc kết quả test trong file khác bản hiện tại; tiền thu thêm của hồ sơ đã đối soát được giữ nguyên. Chi phí, mức độ ưu tiên và hạn xử lý không bị thay đổi. Mọi thay đổi được ghi vào lịch sử hồ sơ.
           </div>
 
           <div className="formfoot">
-            <span className="muted">Ví dụ ngày nhận đầu tiên: {parsed.records[0]?.received ?? '—'}</span>
-            <button className="primary" disabled={busy || fresh.length === 0} onClick={() => void run()}>
-              {busy ? 'Đang nhập…' : `Nhập ${fresh.length} hồ sơ`}
+            <span className="muted">{progress}</span>
+            <button className="primary" disabled={busy || total === 0} onClick={() => void run()}>
+              {busy ? 'Đang xử lý…' : `Áp dụng (${fresh.length} mới, ${chosen.length} cập nhật)`}
             </button>
           </div>
         </>

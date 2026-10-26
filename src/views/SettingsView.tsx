@@ -90,7 +90,7 @@ export function SettingsView() {
       </div>
       {importing && (
         <ImportDialog
-          existingIds={new Set(records.map((r) => r.id))}
+          existing={records}
           onImported={reload}
           onClose={() => setImporting(false)}
         />

@@ -162,6 +162,131 @@ function stableId(key: string): string {
   return 'BH-' + hex.slice(0, 10).toUpperCase();
 }
 
+// ---------------------------------------------------------------------------
+// Ghép với hồ sơ đang có và lập kế hoạch cập nhật (file là nguồn chuẩn)
+// ---------------------------------------------------------------------------
+
+export type UpdateKey =
+  | 'status' | 'channel' | 'address' | 'reason' | 'test' | 'outbound'
+  | 'sent' | 'replacement' | 'note' | 'shipFlag' | 'extra';
+
+/** Các trường được cập nhật theo file. Thông tin định danh, ưu tiên, hạn xử lý và chi phí không bị đụng tới. */
+export const UPDATE_FIELDS: { key: UpdateKey; label: string }[] = [
+  { key: 'status', label: 'Trạng thái' },
+  { key: 'outbound', label: 'Mã vận đơn gửi hàng mới' },
+  { key: 'sent', label: 'Ngày gửi hàng' },
+  { key: 'test', label: 'Kết quả kiểm tra' },
+  { key: 'replacement', label: 'Mẫu đổi' },
+  { key: 'reason', label: 'Lý do' },
+  { key: 'channel', label: 'Kênh' },
+  { key: 'address', label: 'Địa chỉ' },
+  { key: 'note', label: 'Ghi chú' },
+  { key: 'shipFlag', label: 'Dấu tích ship' },
+  { key: 'extra', label: 'Tiền thu thêm' }
+];
+
+export interface FieldChange {
+  key: UpdateKey;
+  label: string;
+  from: string;
+  to: string;
+}
+
+export interface PlannedUpdate {
+  current: WarrantyRecord;
+  next: WarrantyRecord;
+  changes: FieldChange[];
+}
+
+export interface ImportPlan {
+  fresh: WarrantyRecord[];
+  updates: PlannedUpdate[];
+  /** Số hồ sơ khớp nhưng không có gì khác biệt. */
+  unchanged: number;
+}
+
+const clean = (s: string): string => s.replace(/\r\n/g, '\n').trim();
+const shown = (v: string | number | boolean | null): string =>
+  typeof v === 'boolean' ? (v ? 'Có' : 'Không') : v === null ? '' : String(v);
+
+/** Khóa nhận diện hồ sơ, không phụ thuộc trạng thái. */
+export const identityKey = (r: WarrantyRecord): string =>
+  [r.received, r.order, r.customer, r.phone, r.product, r.inbound].map(clean).join('|').toLowerCase();
+
+/**
+ * So khớp các hồ sơ trong file với hồ sơ đang có (theo mã hồ sơ, sau đó theo khóa nhận diện nếu chỉ có đúng một ứng viên).
+ * - Ô trống trong file không xóa dữ liệu đang có.
+ * - Trạng thái chỉ đổi khi vận đơn giao hoặc kết quả test trong file khác bản đang có.
+ * - Tiền thu thêm không đổi với hồ sơ đã đối soát.
+ */
+export function planImport(incoming: WarrantyRecord[], existing: WarrantyRecord[]): ImportPlan {
+  const byId = new Map(existing.map((r) => [r.id, r]));
+  const taken = new Set<string>();
+  const byKey = new Map<string, WarrantyRecord[]>();
+  for (const r of existing) {
+    const k = identityKey(r);
+    byKey.set(k, [...(byKey.get(k) ?? []), r]);
+  }
+
+  const fresh: WarrantyRecord[] = [];
+  const updates: PlannedUpdate[] = [];
+  let unchanged = 0;
+
+  for (const inc of incoming) {
+    let current = byId.get(inc.id);
+    if (!current) {
+      const candidates = (byKey.get(identityKey(inc)) ?? []).filter((r) => !taken.has(r.id));
+      if (candidates.length === 1) current = candidates[0];
+    }
+    if (!current || taken.has(current.id)) {
+      if (!current) fresh.push(inc);
+      else unchanged++;
+      continue;
+    }
+    taken.add(current.id);
+
+    const patch: Partial<WarrantyRecord> = {};
+    const changes: FieldChange[] = [];
+    const change = (key: UpdateKey, value: WarrantyRecord[UpdateKey]) => {
+      (patch as Record<string, unknown>)[key] = value;
+      changes.push({
+        key,
+        label: UPDATE_FIELDS.find((f) => f.key === key)!.label,
+        from: shown(current![key]),
+        to: shown(value)
+      });
+    };
+
+    for (const { key } of UPDATE_FIELDS) {
+      if (key === 'status') continue;
+      const a = current[key];
+      const b = inc[key];
+      if (typeof a === 'string' && typeof b === 'string') {
+        if (!clean(b) || clean(a) === clean(b)) continue; // ô trống không xóa dữ liệu
+        change(key, b);
+      } else if (key === 'extra') {
+        if (b === null || a === b || current.costReviewed) continue;
+        change(key, b);
+      } else if (a !== b) {
+        change(key, b);
+      }
+    }
+
+    const sourceChanged = clean(current.outbound) !== clean(inc.outbound) || clean(current.test) !== clean(inc.test);
+    if (sourceChanged && inc.status !== current.status) change('status', inc.status);
+
+    if (!changes.length) {
+      unchanged++;
+      continue;
+    }
+    changes.sort(
+      (x, y) => UPDATE_FIELDS.findIndex((f) => f.key === x.key) - UPDATE_FIELDS.findIndex((f) => f.key === y.key)
+    );
+    updates.push({ current, next: { ...current, ...patch }, changes });
+  }
+  return { fresh, updates, unchanged };
+}
+
 const DAY = 86400000;
 
 /**

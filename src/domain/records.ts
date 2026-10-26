@@ -68,7 +68,22 @@ export function emptyRecord(): WarrantyRecord {
   };
 }
 
-export const emptyFilters: Filters = { query: '', status: '', channel: '', month: '' };
+export const emptyFilters: Filters = { query: '', status: '', channel: '', month: '', datePreset: '' };
+
+function dateDaysAgo(days: number): string {
+  const [year, month, day] = today().split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day - days)).toISOString().slice(0, 10);
+}
+
+function matchesDatePreset(received: string, preset: string): boolean {
+  const current = today();
+  if (preset === 'today') return received === current;
+  if (preset === 'yesterday') return received === dateDaysAgo(1);
+  if (preset === 'day-before') return received === dateDaysAgo(2);
+  if (preset === 'last7') return received >= dateDaysAgo(6) && received <= current;
+  if (preset === 'last30') return received >= dateDaysAgo(29) && received <= current;
+  return true;
+}
 
 export function filterRecords(records: WarrantyRecord[], f: Filters): WarrantyRecord[] {
   const q = f.query.toLocaleLowerCase('vi');
@@ -81,7 +96,8 @@ export function filterRecords(records: WarrantyRecord[], f: Filters): WarrantyRe
           .includes(q)) &&
       (!f.status || r.status === f.status) &&
       (!f.channel || r.channel === f.channel) &&
-      (!f.month || r.received.startsWith(f.month))
+      (!f.month || r.received.startsWith(f.month)) &&
+      (!f.datePreset || matchesDatePreset(r.received, f.datePreset))
   );
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { loadHistory } from '../api/records';
+import { PRODUCT_CATALOG } from '../domain/productCatalog';
 import { channelClass, CHANNELS, costReviewError, money, MONEY_KEYS, PRIORITIES, STATUSES } from '../domain/records';
 import { printRecord } from '../domain/print';
 import type { HistoryEntry, MoneyKey, Priority, Status, WarrantyRecord } from '../types';
@@ -37,6 +38,62 @@ function fromDraft(d: Draft): WarrantyRecord {
   const r = { ...d } as unknown as WarrantyRecord;
   for (const k of MONEY_KEYS) r[k] = d[k] === '' ? null : Number(d[k]);
   return r;
+}
+
+interface ProductPickerProps {
+  label: string;
+  value: string;
+  listId: string;
+  onChange(value: string): void;
+}
+
+function ProductPicker({ label, value, listId, onChange }: ProductPickerProps) {
+  const product = PRODUCT_CATALOG.find((item) => item.variants.some((variant) => variant.value === value));
+  const variant = product?.variants.find((item) => item.value === value);
+  const hasColors = product?.variants.some((item) => item.color) ?? false;
+
+  return (
+    <>
+      <label>
+        {label}
+        <input
+          type="text"
+          list={listId}
+          value={product?.name ?? value}
+          placeholder="Gõ để tìm hoặc chọn sản phẩm"
+          onChange={(e) => {
+            const next = e.target.value;
+            const selected = PRODUCT_CATALOG.find((item) => item.name === next);
+            onChange(selected ? selected.variants[0].value : next);
+          }}
+        />
+        <datalist id={listId}>
+          {PRODUCT_CATALOG.map((item) => (
+            <option key={item.name} value={item.name} />
+          ))}
+        </datalist>
+      </label>
+      <label>
+        Màu sắc
+        <select
+          value={variant?.color ?? ''}
+          disabled={!product || !hasColors}
+          onChange={(e) => {
+            const next = product?.variants.find((item) => item.color === e.target.value);
+            if (next) onChange(next.value);
+          }}
+        >
+          {hasColors ? (
+            product?.variants.filter((item) => item.color).map((item) => (
+              <option key={item.color} value={item.color}>{item.color}</option>
+            ))
+          ) : (
+            <option value="">Không áp dụng</option>
+          )}
+        </select>
+      </label>
+    </>
+  );
 }
 
 export function RecordEditor({ record, existing, readOnly, others, onSave, onClose }: Props) {
@@ -153,10 +210,10 @@ export function RecordEditor({ record, existing, readOnly, others, onSave, onClo
 
           <div className="formsection">02 · Sản phẩm & quá trình xử lý</div>
           <div className="formgrid">
-            {area('Sản phẩm ban đầu', 'product')}
+            <ProductPicker label="Sản phẩm ban đầu" value={d.product} listId="original-products" onChange={(value) => set('product', value)} />
             {area('Lý do bảo hành / đổi trả', 'reason')}
             {area('Kết quả kiểm tra của kho', 'test')}
-            {area('Sản phẩm / mẫu đổi', 'replacement')}
+            <ProductPicker label="Sản phẩm / mẫu đổi" value={d.replacement} listId="replacement-products" onChange={(value) => set('replacement', value)} />
             {text('Mã vận đơn thu hồi hàng lỗi', 'inbound')}
             {text('Mã vận đơn gửi hàng mới', 'outbound')}
             {text('Ngày gửi hàng', 'sent', 'date')}

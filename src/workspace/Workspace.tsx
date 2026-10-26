@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { RecordEditor } from '../components/RecordEditor';
 import { useToast } from '../components/Toast';
 import { emptyRecord } from '../domain/records';
-import type { WarrantyRecord } from '../types';
+import type { Status, WarrantyRecord } from '../types';
 import { AccountsView } from '../views/AccountsView';
 import { OverviewView } from '../views/OverviewView';
 import { RecordsView } from '../views/RecordsView';
@@ -83,6 +83,18 @@ export function Workspace() {
     toast('Đã lưu lên dữ liệu chung · ' + saved.id);
   }
 
+  async function onStatusChange(record: WarrantyRecord, status: Status) {
+    try {
+      const saved = await saveRecord({ ...record, status });
+      setRecords((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+      toast('Đã cập nhật trạng thái · ' + saved.id);
+    } catch (e) {
+      if ((e as { status?: number }).status === 409) void reload();
+      toast((e as Error).message);
+      throw e;
+    }
+  }
+
   async function onSaveFailed409() {
     await reload();
   }
@@ -141,9 +153,11 @@ export function Workspace() {
               Chưa kết nối được máy chủ. Dữ liệu hiển thị có thể chưa mới; chỉ xác nhận lưu sau khi máy chủ trả thành công.
             </div>
           )}
-          {view === 'overview' && <OverviewView goRecords={() => setView('records')} />}
-          {view === 'records' && <RecordsView mode="records" />}
-          {view === 'costs' && <RecordsView mode="costs" />}
+          {view === 'overview' && (
+            <OverviewView goRecords={() => setView('records')} onStatusChange={onStatusChange} />
+          )}
+          {view === 'records' && <RecordsView mode="records" onStatusChange={onStatusChange} />}
+          {view === 'costs' && <RecordsView mode="costs" onStatusChange={onStatusChange} />}
           {view === 'reports' && <ReportsView />}
           {view === 'settings' && <SettingsView />}
           {view === 'accounts' && role === 'admin' && <AccountsView />}

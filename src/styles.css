@@ -47,3 +47,12 @@ input::placeholder,textarea::placeholder{color:#000;opacity:1}
 /* Inline status editing in warranty lists. */
 .status-select{width:100%;min-width:0;padding:7px 8px;font-size:14px;background:#fff;border-color:#dce5de;border-radius:6px}
 .status-select:disabled{opacity:.65;cursor:wait}
+
+/* Distinct colors make each warranty status easy to scan. */
+.status-select.status-pending-shipment,.status-select option.status-pending-shipment{background:#dbeafe;color:#1e40af}
+.status-select.status-checking,.status-select option.status-checking{background:#fef3c7;color:#92400e}
+.status-select.status-processing,.status-select option.status-processing{background:#ede9fe;color:#6d28d9}
+.status-select.status-sent,.status-select option.status-sent{background:#cffafe;color:#0e7490}
+.status-select.status-complete,.status-select option.status-complete{background:#dcfce7;color:#15803d}
+.status-select.status-refund,.status-select option.status-refund{background:#fce7f3;color:#be185d}
+.status-select.status-rejected,.status-select option.status-rejected{background:#fee2e2;color:#b91c1c}

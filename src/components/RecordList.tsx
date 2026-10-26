@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { emptyFilters, fee, money, net, PAGE_SIZE, STATUSES, uniqueChannels } from '../domain/records';
-import type { Filters, WarrantyRecord } from '../types';
+import type { Filters, Status, WarrantyRecord } from '../types';
 import { ChannelBadge, PriorityBadge, StatusBadge } from './parts';
 
 export function FilterBar(props: {
@@ -45,12 +46,24 @@ interface Props {
   onPage?(page: number): void;
   canEdit: boolean;
   onOpen(r: WarrantyRecord): void;
+  onStatusChange(r: WarrantyRecord, status: Status): Promise<void>;
 }
 
-export function RecordList({ rows, cost = false, paged = true, page = 1, onPage, canEdit, onOpen }: Props) {
+export function RecordList({ rows, cost = false, paged = true, page = 1, onPage, canEdit, onOpen, onStatusChange }: Props) {
+  const [savingId, setSavingId] = useState<string | null>(null);
   const start = paged ? (page - 1) * PAGE_SIZE : 0;
   const shown = rows.slice(start, start + (paged ? PAGE_SIZE : 6));
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+
+  function changeStatus(record: WarrantyRecord, status: Status) {
+    if (status === record.status) return;
+    setSavingId(record.id);
+    void onStatusChange(record, status)
+      .catch(() => {
+        // The workspace reports save errors and keeps the previous status selected.
+      })
+      .finally(() => setSavingId(null));
+  }
 
   return (
     <div className="panel tablepanel">
@@ -120,7 +133,21 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
                 ) : (
                   <>
                     <td>
-                      <StatusBadge status={r.status} />
+                      {canEdit ? (
+                        <select
+                          className="status-select"
+                          aria-label={`Trạng thái hồ sơ ${r.id}`}
+                          value={r.status}
+                          disabled={savingId === r.id}
+                          onChange={(e) => changeStatus(r, e.target.value as Status)}
+                        >
+                          {STATUSES.map((status) => (
+                            <option key={status}>{status}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <StatusBadge status={r.status} />
+                      )}
                       <span className="sub">
                         <PriorityBadge priority={r.priority} />
                       </span>

@@ -214,7 +214,13 @@ export function RecordEditor({ record, existing, readOnly, others, onSave, onClo
             </label>
           </div>
 
-          <div className="formsection">03 · Ghi chú</div>
+          <div className="formsection">03 · Thanh toán phí ship (VND)</div>
+          <div className="formgrid">
+            {text('Người gửi', 'shipIn', 'number')}
+            {text('Người nhận', 'shipOut', 'number')}
+          </div>
+
+          <div className="formsection">04 · Ghi chú</div>
           <div className="formgrid">{area('Ghi chú', 'note', true)}</div>
         </fieldset>
 

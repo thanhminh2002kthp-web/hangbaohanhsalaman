@@ -68,6 +68,12 @@ export function emptyRecord(): WarrantyRecord {
   };
 }
 
+/** Che giữa số điện thoại để hiển thị trên màn hình tổng quan: 0982 ••• 123. */
+export function maskPhone(phone: string): string {
+  const digits = phone.replace(/\s+/g, '');
+  return digits.length >= 8 ? `${digits.slice(0, 4)} ••• ${digits.slice(-3)}` : phone;
+}
+
 export const emptyFilters: Filters = { query: '', status: '', channel: '', datePreset: '', dateFrom: '', dateTo: '' };
 
 export const DATE_PRESETS: { value: string; label: string }[] = [

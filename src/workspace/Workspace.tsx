@@ -156,7 +156,7 @@ export function Workspace() {
             </div>
           )}
           {view === 'overview' && (
-            <OverviewView goRecords={() => setView('records')} onStatusChange={onStatusChange} />
+            <OverviewView goRecords={() => setView('records')} goReports={() => setView('reports')} />
           )}
           {view === 'records' && <RecordsView mode="records" onStatusChange={onStatusChange} />}
           {view === 'costs' && <RecordsView mode="costs" onStatusChange={onStatusChange} />}

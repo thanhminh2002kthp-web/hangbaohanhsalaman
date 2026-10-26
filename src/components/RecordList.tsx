@@ -3,7 +3,7 @@ import { DATE_PRESETS, emptyFilters, fee, money, net, PAGE_SIZE, STATUSES, uniqu
 import type { Filters, Status, WarrantyRecord } from '../types';
 import { ChannelBadge, PriorityBadge, StatusBadge } from './parts';
 
-const STATUS_COLOR_CLASS: Record<Status, string> = {
+export const STATUS_COLOR_CLASS: Record<Status, string> = {
   'Chờ nhận hàng': 'status-pending-shipment',
   'Chờ kiểm tra': 'status-checking',
   'Đang xử lý': 'status-processing',

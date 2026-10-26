@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { loadHistory } from '../api/records';
 import { PRODUCT_CATALOG } from '../domain/productCatalog';
-import { channelClass, CHANNELS, costReviewError, money, MONEY_KEYS, PRIORITIES, STATUSES } from '../domain/records';
+import { channelClass, CHANNELS, MONEY_KEYS, PRIORITIES, STATUSES } from '../domain/records';
 import { printRecord } from '../domain/print';
 import type { HistoryEntry, MoneyKey, Priority, Status, WarrantyRecord } from '../types';
 import { useToast } from './Toast';
@@ -17,16 +17,6 @@ interface Props {
 }
 
 type Draft = Omit<WarrantyRecord, MoneyKey> & Record<MoneyKey, string>;
-
-const MONEY_LABELS: [string, MoneyKey][] = [
-  ['Người gửi trả phí', 'shipIn'],
-  ['Người nhận trả phí', 'shipOut'],
-  ['Giá vốn hàng đổi / linh kiện', 'parts'],
-  ['Công xử lý', 'labor'],
-  ['Chi khác', 'other'],
-  ['Tiền hoàn khách', 'refund'],
-  ['Tổng tiền thu thêm', 'extra']
-];
 
 function toDraft(r: WarrantyRecord): Draft {
   const d = { ...r } as unknown as Draft;
@@ -133,13 +123,9 @@ export function RecordEditor({ record, existing, readOnly, others, onSave, onClo
     </label>
   );
 
-  const total = MONEY_KEYS.filter((k) => k !== 'extra').reduce((s, k) => s + (Number(d[k]) || 0), 0) - (Number(d.extra) || 0);
-
   async function submit(e: FormEvent) {
     e.preventDefault();
     const next = fromDraft(d);
-    const problem = costReviewError(next);
-    if (problem) return toast(problem);
     if (
       others.some((x) => x.id !== next.id && x.order === next.order) &&
       !confirm('Mã đơn đã có hồ sơ khác. Vẫn lưu lần bảo hành này?')
@@ -228,30 +214,11 @@ export function RecordEditor({ record, existing, readOnly, others, onSave, onClo
             </label>
           </div>
 
-          <div className="formsection">03 · Chi phí thực tế (VND)</div>
-          <p style={{ fontSize: 11 }}>
-            Để trống khoản chưa biết; nhập 0 khi đã xác nhận không phát sinh. Giá sản phẩm trong mô tả không tự động tính vào chi phí.
-          </p>
-          <div className="formgrid">
-            {MONEY_LABELS.map(([label, k]) => (
-              <div key={k}>{text(label, k, 'number')}</div>
-            ))}
-            <label style={{ justifyContent: 'center' }}>
-              <span>
-                <input type="checkbox" checked={d.shipFlag} onChange={(e) => set('shipFlag', e.target.checked)} /> Dấu tích phí ship từ bảng gốc
-              </span>
-            </label>
-            <label className="wide">
-              <span>
-                <input type="checkbox" checked={d.costReviewed} onChange={(e) => set('costReviewed', e.target.checked)} /> Đã đối soát đầy đủ chi phí (cần nhập đủ các ô tiền)
-              </span>
-            </label>
-            {area('Ghi chú', 'note', true)}
-          </div>
+          <div className="formsection">03 · Ghi chú</div>
+          <div className="formgrid">{area('Ghi chú', 'note', true)}</div>
         </fieldset>
 
         <div className="formfoot">
-          <span className="moneytotal">Chi phí ròng tạm tính: {money(total)}</span>
           <div className="actions">
             {existing && (
               <button

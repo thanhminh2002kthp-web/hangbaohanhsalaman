@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { emptyFilters, fee, money, net, PAGE_SIZE, STATUSES, uniqueChannels } from '../domain/records';
+import { DATE_PRESETS, emptyFilters, fee, money, net, PAGE_SIZE, STATUSES, uniqueChannels } from '../domain/records';
 import type { Filters, Status, WarrantyRecord } from '../types';
 import { ChannelBadge, PriorityBadge, StatusBadge } from './parts';
 
@@ -41,22 +41,37 @@ export function FilterBar(props: {
       </select>
       <select
         value={f.datePreset}
-        aria-label="Lọc nhanh theo ngày tiếp nhận"
-        onChange={(e) => set({ datePreset: e.target.value, month: '' })}
+        aria-label="Lọc theo ngày tiếp nhận"
+        onChange={(e) => set({ datePreset: e.target.value, dateFrom: '', dateTo: '' })}
       >
-        <option value="">Tất cả ngày</option>
-        <option value="today">Hôm nay</option>
-        <option value="yesterday">Hôm qua</option>
-        <option value="day-before">Hôm kia</option>
-        <option value="last7">7 ngày gần đây</option>
-        <option value="last30">30 ngày gần đây</option>
+        {DATE_PRESETS.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
+          </option>
+        ))}
       </select>
-      <input
-        type="month"
-        value={f.month}
-        aria-label="Lọc theo tháng tiếp nhận"
-        onChange={(e) => set({ month: e.target.value, datePreset: '' })}
-      />
+      {f.datePreset === 'custom' && (
+        <div className="daterange">
+          <label>
+            Từ ngày
+            <input
+              type="date"
+              value={f.dateFrom}
+              max={f.dateTo || undefined}
+              onChange={(e) => set({ dateFrom: e.target.value })}
+            />
+          </label>
+          <label>
+            Đến ngày
+            <input
+              type="date"
+              value={f.dateTo}
+              min={f.dateFrom || undefined}
+              onChange={(e) => set({ dateTo: e.target.value })}
+            />
+          </label>
+        </div>
+      )}
       <button className="btn" onClick={() => onChange(emptyFilters)}>
         Xóa lọc
       </button>

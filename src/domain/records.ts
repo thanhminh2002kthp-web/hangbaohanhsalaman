@@ -68,15 +68,37 @@ export function emptyRecord(): WarrantyRecord {
   };
 }
 
-export const emptyFilters: Filters = { query: '', status: '', channel: '', month: '', datePreset: '' };
+export const emptyFilters: Filters = { query: '', status: '', channel: '', datePreset: '', dateFrom: '', dateTo: '' };
+
+export const DATE_PRESETS: { value: string; label: string }[] = [
+  { value: '', label: 'Tất cả ngày' },
+  { value: 'today', label: 'Hôm nay' },
+  { value: 'yesterday', label: 'Hôm qua' },
+  { value: 'day-before', label: 'Hôm kia' },
+  { value: 'last7', label: '7 ngày gần đây' },
+  { value: 'last30', label: '30 ngày gần đây' },
+  { value: 'this-month', label: 'Tháng này' },
+  { value: 'last-month', label: 'Tháng trước' },
+  { value: 'custom', label: 'Tùy chọn khoảng ngày…' }
+];
+
+/** Tháng (YYYY-MM) cách tháng hiện tại `n` tháng về trước. */
+function monthsAgo(n: number): string {
+  const [year, month] = today().split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1 - n, 1)).toISOString().slice(0, 7);
+}
 
 function dateDaysAgo(days: number): string {
   const [year, month, day] = today().split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, day - days)).toISOString().slice(0, 10);
 }
 
-function matchesDatePreset(received: string, preset: string): boolean {
+function matchesDate(received: string, f: Pick<Filters, 'datePreset' | 'dateFrom' | 'dateTo'>): boolean {
+  const preset = f.datePreset;
   const current = today();
+  if (preset === 'custom') return (!f.dateFrom || received >= f.dateFrom) && (!f.dateTo || received <= f.dateTo);
+  if (preset === 'this-month') return received.startsWith(monthsAgo(0));
+  if (preset === 'last-month') return received.startsWith(monthsAgo(1));
   if (preset === 'today') return received === current;
   if (preset === 'yesterday') return received === dateDaysAgo(1);
   if (preset === 'day-before') return received === dateDaysAgo(2);
@@ -96,8 +118,7 @@ export function filterRecords(records: WarrantyRecord[], f: Filters): WarrantyRe
           .includes(q)) &&
       (!f.status || r.status === f.status) &&
       (!f.channel || r.channel === f.channel) &&
-      (!f.month || r.received.startsWith(f.month)) &&
-      (!f.datePreset || matchesDatePreset(r.received, f.datePreset))
+      (!f.datePreset || matchesDate(r.received, f))
   );
 }
 

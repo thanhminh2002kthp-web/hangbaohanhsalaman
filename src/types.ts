@@ -59,6 +59,9 @@ export interface Filters {
   query: string;
   status: string;
   channel: string;
-  month: string;
+  /** '' = tất cả ngày; today | yesterday | … | custom (dùng dateFrom/dateTo). */
   datePreset: string;
+  /** YYYY-MM-DD, chỉ dùng khi datePreset = 'custom'. */
+  dateFrom: string;
+  dateTo: string;
 }

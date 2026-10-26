@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { costReviewError, emptyFilters, emptyRecord, fee, filterRecords, net, parseBackup, toCsv } from './records';
+import { costReviewError, emptyFilters, emptyRecord, fee, filterRecords, net, parseBackup, toCsv, today } from './records';
 
 const rec = (patch = {}) => ({ ...emptyRecord(), ...patch });
 
@@ -31,10 +31,27 @@ describe('lọc hồ sơ', () => {
     expect(filterRecords(rows, { ...emptyFilters, query: 'nguyễn' })).toHaveLength(1);
   });
 
-  it('lọc theo kênh, trạng thái và tháng', () => {
+  it('lọc theo kênh và trạng thái', () => {
     expect(filterRecords(rows, { ...emptyFilters, channel: 'TIKTOK' })[0].id).toBe('B');
     expect(filterRecords(rows, { ...emptyFilters, status: 'Hoàn tất' })[0].id).toBe('A');
-    expect(filterRecords(rows, { ...emptyFilters, month: '2026-09' })[0].id).toBe('B');
+  });
+
+  const custom = { ...emptyFilters, datePreset: 'custom' };
+
+  it('lọc theo khoảng ngày tùy chọn, gồm cả hai đầu mút', () => {
+    expect(filterRecords(rows, { ...custom, dateFrom: '2026-09-15', dateTo: '2026-09-15' }).map((r) => r.id)).toEqual(['B']);
+    expect(filterRecords(rows, { ...custom, dateFrom: '2026-09-01', dateTo: '2026-10-01' })).toHaveLength(2);
+    expect(filterRecords(rows, { ...custom, dateFrom: '2026-09-16' }).map((r) => r.id)).toEqual(['A']);
+    expect(filterRecords(rows, { ...custom, dateTo: '2026-09-30' }).map((r) => r.id)).toEqual(['B']);
+    expect(filterRecords(rows, custom)).toHaveLength(2);
+  });
+
+  it('lọc nhanh theo tháng này / tháng trước', () => {
+    const [y, m] = today().split('-').map(Number); // cùng múi giờ Việt Nam với bộ lọc
+    const ym = (offset: number) => new Date(Date.UTC(y, m - 1 + offset, 15)).toISOString().slice(0, 10);
+    const data = [rec({ id: 'now', received: ym(0) }), rec({ id: 'prev', received: ym(-1) }), rec({ id: 'old', received: ym(-5) })];
+    expect(filterRecords(data, { ...emptyFilters, datePreset: 'this-month' }).map((r) => r.id)).toEqual(['now']);
+    expect(filterRecords(data, { ...emptyFilters, datePreset: 'last-month' }).map((r) => r.id)).toEqual(['prev']);
   });
 });
 

@@ -11,6 +11,14 @@ input[aria-invalid="true"]{border-color:#b3382c}
 nav button{display:flex;align-items:center;gap:12px;line-height:1.35}
 .navicon{width:20px;height:20px;flex:none;opacity:.8}
 nav button.active .navicon,nav button:hover .navicon{opacity:1}
+/* Logo: Be Vietnam Pro (thiết kế cho tiếng Việt), chữ thưa và gọn */
+.brand{font-family:'Be Vietnam Pro',Arial,Helvetica,sans-serif;color:#0f3d30;gap:0}
+.brand>span{font-size:25px;font-weight:800;letter-spacing:.14em;line-height:1.1}
+.brand small{font-size:10.5px;font-weight:600;letter-spacing:.16em;color:#3f7a62;margin-top:8px;text-transform:uppercase}
+.brand:focus:not(:focus-visible){outline:none}
+aside nav{margin-top:32px}
+@media(max-width:1000px){.brand>span{font-size:21px}.brand small{font-size:9.5px;letter-spacing:.12em}}
+@media(max-width:650px){aside nav{margin-top:14px}}
 .daterange{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .daterange label{font-size:12px}
 .filters .daterange input{flex:none;min-width:0;width:170px}

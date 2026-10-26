@@ -99,12 +99,18 @@ export function Workspace() {
   return (
     <WorkspaceCtx.Provider value={ctx}>
       <aside>
-        <a className="brand" href="#">
+        <a
+          className="brand"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setView('overview');
+          }}
+        >
           <span>
             SALAMAN<small>TRUNG TÂM BẢO HÀNH</small>
           </span>
         </a>
-        <div className="navlabel">KHÔNG GIAN LÀM VIỆC</div>
         <nav>
           {nav.map((v) => (
             <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>

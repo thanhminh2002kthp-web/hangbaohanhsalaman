@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { listRecords, saveRecord } from '../api/records';
 import { useAuth } from '../auth/AuthProvider';
+import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { NavIcon } from '../components/NavIcon';
 import { RecordEditor } from '../components/RecordEditor';
 import { useToast } from '../components/Toast';
@@ -34,6 +35,7 @@ export function Workspace() {
   const [view, setView] = useState<View>('overview');
   const [records, setRecords] = useState<WarrantyRecord[]>([]);
   const [online, setOnline] = useState(true);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [editing, setEditing] = useState<{ record: WarrantyRecord; existing: boolean } | null>(null);
 
   const reload = useCallback(async (): Promise<boolean> => {
@@ -142,6 +144,15 @@ export function Workspace() {
               href="#"
               onClick={(e) => {
                 e.preventDefault();
+                setChangingPassword(true);
+              }}
+            >
+              Đổi mật khẩu
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
                 void signOut();
               }}
             >
@@ -166,6 +177,7 @@ export function Workspace() {
           <div className="source">SALAMAN · Quản lý bảo hành & đổi trả &nbsp; / &nbsp; Tiền tệ VND · Múi giờ Việt Nam</div>
         </section>
       </main>
+      {changingPassword && <ChangePasswordModal onClose={() => setChangingPassword(false)} />}
       {editing && (
         <RecordEditor
           key={editing.record.id}

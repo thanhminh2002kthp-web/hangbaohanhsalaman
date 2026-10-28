@@ -25,6 +25,18 @@ export function validatePassword(password: string): string[] {
   return errors;
 }
 
+/**
+ * Kiểm tra form đổi mật khẩu. `current` = undefined khi không cần mật khẩu hiện tại
+ * (đặt mật khẩu mới sau khi kích hoạt từ email). Trả về lỗi đầu tiên hoặc null.
+ */
+export function checkPasswordChange(input: { current?: string; next: string; confirm: string }): string | null {
+  if (input.current !== undefined && !input.current) return 'Nhập mật khẩu hiện tại.';
+  if (validatePassword(input.next).length) return 'Mật khẩu mới chưa đạt yêu cầu.';
+  if (input.next !== input.confirm) return 'Mật khẩu nhập lại không khớp.';
+  if (input.current !== undefined && input.current === input.next) return 'Mật khẩu mới phải khác mật khẩu hiện tại.';
+  return null;
+}
+
 export const normalizeEmail = (raw: string): string => raw.trim().toLowerCase();
 
 const EMAIL_RE =

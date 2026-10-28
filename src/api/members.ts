@@ -1,4 +1,5 @@
 import type { Member, Role } from '../types';
+import { invokeFunction } from './functions';
 import { ApiError, supabase } from './supabase';
 
 export async function listMembers(): Promise<Member[]> {
@@ -20,18 +21,7 @@ export async function myMembership(email: string): Promise<{ role: Role } | null
 
 /** Gọi Edge Function admin-users (tạo tài khoản / đặt lại mật khẩu). */
 async function callAdminFunction(body: Record<string, string>): Promise<void> {
-  const { error } = await supabase.functions.invoke('admin-users', { body });
-  if (!error) return;
-  let message = error.message;
-  const res = (error as { context?: Response }).context;
-  if (res && typeof res.json === 'function') {
-    try {
-      message = (await res.json()).error ?? message;
-    } catch {
-      /* giữ message mặc định */
-    }
-  }
-  throw new ApiError(message);
+  await invokeFunction('admin-users', body);
 }
 
 export const createAccount = (email: string, password: string, role: Role) =>

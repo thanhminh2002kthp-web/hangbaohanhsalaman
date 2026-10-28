@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { isConfigured } from '../api/supabase';
 import { useAuth } from './AuthProvider';
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+export function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="panel authcard">
       <div className="eyebrow">SALAMAN SERVICE CENTER</div>
@@ -22,7 +22,7 @@ export function SetupNeeded() {
   );
 }
 
-export function LoginScreen() {
+export function LoginScreen({ onForgot }: { onForgot(): void }) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,7 +41,7 @@ export function LoginScreen() {
 
   return (
     <Card title="Đăng nhập để tiếp tục">
-      <p>Hệ thống nội bộ. Dùng tài khoản do quản trị viên cấp; nếu chưa có hoặc quên mật khẩu, hãy liên hệ quản trị viên.</p>
+      <p>Hệ thống nội bộ. Dùng tài khoản do quản trị viên cấp; nếu chưa có tài khoản, hãy liên hệ quản trị viên.</p>
       <form onSubmit={submit} className="authform">
         <input type="email" required placeholder="email@gmail.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input type="password" required placeholder="Mật khẩu" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -50,6 +50,11 @@ export function LoginScreen() {
           {busy ? 'Đang xử lý…' : 'Đăng nhập'}
         </button>
       </form>
+      <p style={{ marginTop: 16 }}>
+        <button className="link" type="button" onClick={onForgot}>
+          Quên mật khẩu?
+        </button>
+      </p>
     </Card>
   );
 }

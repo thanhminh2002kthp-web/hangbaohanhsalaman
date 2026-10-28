@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { normalizeEmail, PASSWORD_RULES, validateEmail, validatePassword } from '../domain/accountValidation';
+import { normalizeEmail, validateEmail, validatePassword } from '../domain/accountValidation';
+import { PasswordRules } from './PasswordRules';
 import type { Role } from '../types';
 
 export interface AccountForm {
@@ -106,14 +107,7 @@ export function AccountModal({ mode, email: fixedEmail, existingEmails, onSubmit
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
-          <ul className="rules" aria-label="Yêu cầu mật khẩu">
-            {PASSWORD_RULES.map((r) => (
-              <li key={r.id} className={r.test(password) ? 'rule-ok' : 'rule-bad'}>
-                {r.test(password) ? '✓' : '○'} {r.label}
-              </li>
-            ))}
-            {passwordErrors.some((m) => m.startsWith('Tối đa')) && <li className="rule-fail">✗ Tối đa 72 ký tự</li>}
-          </ul>
+          <PasswordRules password={password} />
 
           <label>
             Nhập lại mật khẩu

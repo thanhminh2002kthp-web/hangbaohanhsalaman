@@ -2,3 +2,7 @@ project_id = "salaman-bao-hanh"
 
 [functions.admin-users]
 verify_jwt = true
+
+# Quên mật khẩu: người dùng chưa đăng nhập nên không thể yêu cầu JWT. Hàm tự kiểm tra và giới hạn tần suất.
+[functions.password-reset]
+verify_jwt = false

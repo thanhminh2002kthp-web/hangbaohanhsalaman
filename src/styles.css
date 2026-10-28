@@ -57,3 +57,12 @@ input::placeholder,textarea::placeholder{color:#000;opacity:1}
 .status-select.status-refund,.status-select option.status-refund{background:#fce7f3;color:#be185d}
 .status-select.status-rejected,.status-select option.status-rejected{background:#fee2e2;color:#b91c1c}
 
+
+/* Clear column boundaries and alternating rows for easy scanning. */
+.records-table th,.records-table td{border-right:1px solid #d5e1da}
+.records-table th:last-child,.records-table td:last-child{border-right:0}
+.records-table th{background:#e5efe9;border-bottom:2px solid #b6cec0;font-weight:700;line-height:1.5;padding:13px 12px}
+.records-table td{padding:12px;border-bottom:1px solid #d5e1da}
+.records-table tbody tr:nth-child(even){background:#f5f9f6}
+.records-table tbody tr:hover,.records-table tbody tr:focus-within{background:#eaf4ee}
+.records-table td:nth-child(4) .record-reason{margin-top:7px;padding-top:6px;border-top:1px dashed #c8d8ce}

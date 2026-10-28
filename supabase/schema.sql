@@ -169,23 +169,7 @@ drop policy if exists history_select on public.record_history;
 create policy history_select on public.record_history for select to authenticated
   using (public.app_role() is not null);
 
--- 6. Quên mật khẩu: yêu cầu đặt lại qua email ------------------------------
--- Chỉ Edge Function `password-reset` (service_role) đọc/ghi bảng này; không có policy nào cho client.
-create table if not exists public.password_resets (
-  id         uuid primary key default gen_random_uuid(),
-  email      text not null,
-  token_hash text not null unique,        -- băm của mã trong liên kết, không lưu mã gốc
-  pw_cipher  text not null default '',    -- mật khẩu tạm đã mã hóa bằng chính mã trong liên kết
-  expires_at timestamptz not null,
-  used_at    timestamptz,
-  created_at timestamptz not null default now()
-);
-create index if not exists password_resets_email_idx on public.password_resets (email, created_at desc);
-
-alter table public.password_resets enable row level security;
-revoke all on public.password_resets from anon, authenticated;
-
--- 7. Quản trị viên đầu tiên ----------------------------------------------
+-- 6. Quản trị viên đầu tiên ----------------------------------------------
 -- >>> ĐỔI EMAIL DƯỚI ĐÂY thành Gmail của bạn (viết thường) trước khi chạy <<<
 insert into public.members (email, role, active)
 values ('doi-email-cua-ban@gmail.com', 'admin', true)

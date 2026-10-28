@@ -1,28 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { LoginScreen, NoAccessScreen } from './auth/LoginScreens';
-import { ActivateScreen, ForceChangeScreen, ForgotPasswordScreen } from './auth/ResetScreens';
+import { ForgotPasswordScreen, ResetPasswordScreen } from './auth/ResetScreens';
 import { ToastProvider } from './components/Toast';
-import { parseActivationToken } from './domain/passwordReset';
+import { parseAuthLinkError } from './domain/passwordReset';
 import { Workspace } from './workspace/Workspace';
 
 function Gate() {
-  const { status, mustChangePassword } = useAuth();
-  const [token, setToken] = useState(() => parseActivationToken(window.location.hash));
+  const { status, recovering } = useAuth();
   const [forgot, setForgot] = useState(false);
+  // Liên kết email hết hạn: Supabase chuyển về web kèm lỗi ở phần "#". Đọc một lần rồi xóa khỏi địa chỉ.
+  const [linkError] = useState(() => parseAuthLinkError(window.location.hash));
+  useEffect(() => {
+    if (linkError) window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }, [linkError]);
 
-  // Mở từ liên kết trong email: hiện màn hình kích hoạt, bất kể đang đăng nhập hay chưa.
-  if (token) {
-    return (
-      <ActivateScreen
-        token={token}
-        onDone={() => {
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
-          setToken(null);
-        }}
-      />
-    );
-  }
+  // Vừa mở liên kết đặt lại mật khẩu: bắt buộc đặt mật khẩu mới trước khi vào ứng dụng.
+  if (recovering && status !== 'loading') return <ResetPasswordScreen />;
   if (status === 'loading') {
     return (
       <div className="panel authcard">
@@ -31,10 +25,13 @@ function Gate() {
     );
   }
   if (status === 'signedOut') {
-    return forgot ? <ForgotPasswordScreen onBack={() => setForgot(false)} /> : <LoginScreen onForgot={() => setForgot(true)} />;
+    return forgot ? (
+      <ForgotPasswordScreen onBack={() => setForgot(false)} />
+    ) : (
+      <LoginScreen onForgot={() => setForgot(true)} notice={linkError ?? undefined} />
+    );
   }
   if (status === 'noAccess') return <NoAccessScreen />;
-  if (mustChangePassword) return <ForceChangeScreen />;
   return <Workspace />;
 }
 

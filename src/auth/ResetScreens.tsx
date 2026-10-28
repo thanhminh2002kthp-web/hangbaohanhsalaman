@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { activatePasswordReset, requestPasswordReset } from '../api/passwordReset';
+import { requestPasswordReset } from '../api/passwordReset';
 import { PasswordRules } from '../components/PasswordRules';
 import { checkPasswordChange, validateEmail } from '../domain/accountValidation';
 import { useAuth } from './AuthProvider';
@@ -7,7 +7,7 @@ import { Card } from './LoginScreens';
 
 const COOLDOWN_SECONDS = 60;
 
-/** Màn hình "Quên mật khẩu": nhập email → nhận mật khẩu mới và liên kết kích hoạt. */
+/** Màn hình "Quên mật khẩu": nhập email → nhận liên kết đặt lại mật khẩu qua email. */
 export function ForgotPasswordScreen({ onBack }: { onBack(): void }) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -42,9 +42,10 @@ export function ForgotPasswordScreen({ onBack }: { onBack(): void }) {
       {sent ? (
         <>
           <div className="notice" style={{ marginTop: 14 }}>
-            Nếu email này có trong hệ thống, chúng tôi đã gửi <b>mật khẩu mới</b> kèm <b>liên kết kích hoạt</b>. Hãy mở thư (kiểm tra cả mục Spam) và bấm liên kết trong vòng 30 phút. Mật khẩu cũ vẫn dùng được cho đến khi bạn kích hoạt.
+            Nếu email này có tài khoản, chúng tôi đã gửi <b>liên kết đặt lại mật khẩu</b> tới hộp thư. Hãy mở thư (kiểm tra cả mục Spam) và bấm liên kết để tự đặt mật khẩu mới. Mật khẩu cũ vẫn dùng được cho đến khi bạn đặt mật khẩu mới.
           </div>
           <form onSubmit={submit} className="authform">
+            {error && <div className="notice">{error}</div>}
             <button className="btn" type="submit" disabled={busy || wait > 0}>
               {wait > 0 ? `Gửi lại sau ${wait} giây` : 'Gửi lại'}
             </button>
@@ -52,17 +53,16 @@ export function ForgotPasswordScreen({ onBack }: { onBack(): void }) {
         </>
       ) : (
         <>
-          <p>Nhập email tài khoản. Chúng tôi sẽ gửi mật khẩu mới và một liên kết để kích hoạt mật khẩu đó.</p>
+          <p>Nhập email tài khoản. Chúng tôi sẽ gửi một liên kết để bạn đặt mật khẩu mới.</p>
           <form onSubmit={submit} className="authform" noValidate>
             <input type="email" autoFocus placeholder="email@gmail.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             {error && <div className="notice">{error}</div>}
             <button className="primary" type="submit" disabled={busy}>
-              {busy ? 'Đang gửi…' : 'Gửi mật khẩu mới'}
+              {busy ? 'Đang gửi…' : 'Gửi liên kết đặt lại mật khẩu'}
             </button>
           </form>
         </>
       )}
-      {sent && error && <div className="notice">{error}</div>}
       <p style={{ marginTop: 16 }}>
         <button className="link" type="button" onClick={onBack}>
           ← Quay lại đăng nhập
@@ -72,57 +72,9 @@ export function ForgotPasswordScreen({ onBack }: { onBack(): void }) {
   );
 }
 
-/** Màn hình mở từ liên kết trong email: bấm nút để mật khẩu mới có hiệu lực. */
-export function ActivateScreen({ token, onDone }: { token: string; onDone(): void }) {
-  const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
-  const [message, setMessage] = useState('');
-
-  async function activate() {
-    setState('busy');
-    try {
-      const email = await activatePasswordReset(token);
-      setMessage(email);
-      setState('done');
-    } catch (err) {
-      setMessage((err as Error).message);
-      setState('error');
-    }
-  }
-
-  if (state === 'done') {
-    return (
-      <Card title="Đã kích hoạt mật khẩu mới">
-        <div className="notice" style={{ marginTop: 14 }}>
-          Mật khẩu mới của <b>{message}</b> đã có hiệu lực. Hãy đăng nhập bằng mật khẩu ghi trong email; hệ thống sẽ yêu cầu bạn đổi sang mật khẩu của riêng mình.
-        </div>
-        <div className="actions" style={{ marginTop: 20 }}>
-          <button className="primary" onClick={onDone}>
-            Đến trang đăng nhập
-          </button>
-        </div>
-      </Card>
-    );
-  }
-
-  return (
-    <Card title="Kích hoạt mật khẩu mới">
-      <p>Bấm nút bên dưới để mật khẩu mới trong email có hiệu lực. Liên kết chỉ dùng được một lần.</p>
-      {state === 'error' && <div className="notice">{message}</div>}
-      <div className="actions" style={{ marginTop: 20 }}>
-        <button className="primary" disabled={state === 'busy'} onClick={() => void activate()}>
-          {state === 'busy' ? 'Đang kích hoạt…' : 'Kích hoạt mật khẩu mới'}
-        </button>
-        <button className="btn" disabled={state === 'busy'} onClick={onDone}>
-          Hủy
-        </button>
-      </div>
-    </Card>
-  );
-}
-
-/** Sau khi đăng nhập bằng mật khẩu tạm: buộc đặt mật khẩu riêng trước khi vào app. */
-export function ForceChangeScreen() {
-  const { email, setNewPassword, signOut } = useAuth();
+/** Hiện sau khi bấm liên kết trong email: đặt mật khẩu mới (không cần mật khẩu cũ). */
+export function ResetPasswordScreen() {
+  const { email, completeRecovery, signOut } = useAuth();
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [show, setShow] = useState(false);
@@ -135,7 +87,7 @@ export function ForceChangeScreen() {
     if (problem) return setError(problem);
     setBusy(true);
     setError('');
-    const result = await setNewPassword(next);
+    const result = await completeRecovery(next);
     if (result) {
       setError(result);
       setBusy(false);
@@ -144,9 +96,9 @@ export function ForceChangeScreen() {
 
   const kind = show ? 'text' : 'password';
   return (
-    <Card title="Đặt mật khẩu của bạn">
+    <Card title="Đặt mật khẩu mới">
       <p>
-        Tài khoản <b>{email}</b> đang dùng mật khẩu tạm gửi qua email. Hãy đặt mật khẩu mới của riêng bạn để tiếp tục.
+        Đặt mật khẩu mới cho tài khoản <b>{email}</b>.
       </p>
       <form onSubmit={submit} className="authform" noValidate>
         <input type={kind} autoFocus placeholder="Mật khẩu mới" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
@@ -162,7 +114,7 @@ export function ForceChangeScreen() {
       </form>
       <p style={{ marginTop: 16 }}>
         <button className="link" type="button" onClick={() => void signOut()}>
-          Đăng xuất
+          Hủy và đăng xuất
         </button>
       </p>
     </Card>

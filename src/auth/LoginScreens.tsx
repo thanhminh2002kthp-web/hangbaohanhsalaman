@@ -22,7 +22,7 @@ export function SetupNeeded() {
   );
 }
 
-export function LoginScreen({ onForgot }: { onForgot(): void }) {
+export function LoginScreen({ onForgot, notice }: { onForgot(): void; notice?: string }) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +45,7 @@ export function LoginScreen({ onForgot }: { onForgot(): void }) {
       <form onSubmit={submit} className="authform">
         <input type="email" required placeholder="email@gmail.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input type="password" required placeholder="Mật khẩu" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        {notice && !message && <div className="notice">{notice}</div>}
         {message && <div className="notice">{message}</div>}
         <button className="primary" type="submit" disabled={busy}>
           {busy ? 'Đang xử lý…' : 'Đăng nhập'}

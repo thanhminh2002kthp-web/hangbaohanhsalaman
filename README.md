@@ -28,22 +28,33 @@ supabase/schema.sql   bảng, trigger, chính sách RLS
 ## Quên mật khẩu và đổi mật khẩu
 
 - **Đổi mật khẩu** (đang đăng nhập): bấm "Đổi mật khẩu" ở góc trên. Cần nhập mật khẩu hiện tại; đổi xong các thiết bị khác bị đăng xuất.
-- **Quên mật khẩu**: ở màn hình đăng nhập bấm "Quên mật khẩu?", nhập email. Hệ thống gửi email chứa **mật khẩu mới** và **liên kết kích hoạt**.
-  - Mật khẩu mới chỉ có hiệu lực **sau khi bấm liên kết** (một lần, hết hạn sau 30 phút). Trước đó mật khẩu cũ vẫn dùng được, nên người khác bấm "quên mật khẩu" hộ cũng không khóa được bạn.
-  - Sau khi kích hoạt, đăng nhập bằng mật khẩu trong thư; app **bắt buộc đặt mật khẩu riêng** trước khi vào.
-  - Mỗi email tối đa 3 yêu cầu/giờ. Hệ thống luôn trả lời giống nhau dù email có tồn tại hay không.
-  - Mật khẩu tạm được mã hóa trong cơ sở dữ liệu bằng chính mã trong liên kết, mã chỉ lưu dạng băm.
+- **Quên mật khẩu**: ở màn hình đăng nhập bấm "Quên mật khẩu?", nhập email. Supabase gửi email có **liên kết đặt lại mật khẩu**; bấm liên kết, web mở màn hình **Đặt mật khẩu mới** (nhập 2 lần, đủ điều kiện) rồi vào app.
+  - Người dùng bấm liên kết là bị buộc đặt mật khẩu mới trước khi vào được app (kể cả khi tải lại trang).
+  - Liên kết dùng một lần và hết hạn sau 1 giờ (mặc định của Supabase). Liên kết hết hạn thì màn hình đăng nhập báo rõ để yêu cầu lại.
+  - Hệ thống luôn báo "nếu email có tài khoản thì đã gửi", không tiết lộ email nào tồn tại.
+  - Đặt xong, các thiết bị khác bị đăng xuất.
 
-**Thiết lập (một lần):**
-1. Chạy lại phần mới trong `supabase/schema.sql` (mục 6, bảng `password_resets`) trong SQL Editor.
-2. Tạo tài khoản gửi thư tại https://resend.com, **xác minh tên miền** của bạn (Domains → Add Domain, thêm các bản ghi DNS), tạo API key.
-3. Supabase → Edge Functions → **Secrets**, thêm 3 secret:
-   - `RESEND_API_KEY`: khóa API của Resend
-   - `MAIL_FROM`: ví dụ `Salaman <no-reply@tenmiencuaban.com>` (phải thuộc tên miền đã xác minh)
-   - `SITE_URL`: địa chỉ web, ví dụ `https://ten-du-an.vercel.app` (không có dấu `/` ở cuối)
-4. Deploy Edge Function mới: Edge Functions → *Deploy a new function* → tên **`password-reset`** → dán `supabase/functions/password-reset/index.ts` → **tắt công tắc "Verify JWT"** (bắt buộc, vì người quên mật khẩu chưa đăng nhập) → Deploy. Với CLI: `supabase functions deploy password-reset --no-verify-jwt`.
+**Thiết lập gửi thư bằng Gmail (một lần, trong Supabase, không cần sửa code):**
+1. **Gmail:** bật *Xác minh 2 bước* cho tài khoản Gmail dùng để gửi thư, rồi tạo **Mật khẩu ứng dụng** tại https://myaccount.google.com/apppasswords (đặt tên "Salaman", Google cho 16 ký tự). Dùng chính mật khẩu ứng dụng này, không dùng mật khẩu Gmail.
+2. **Supabase → Authentication → Emails → SMTP Settings → Enable custom SMTP**:
+   - Sender email: địa chỉ Gmail đó (người nhận sẽ thấy đúng địa chỉ này)
+   - Sender name: `Salaman`
+   - Host: `smtp.gmail.com`, Port: `465`
+   - Username: địa chỉ Gmail đó; Password: mật khẩu ứng dụng 16 ký tự
+3. **Supabase → Authentication → URL Configuration:** *Site URL* = địa chỉ Vercel của web; *Redirect URLs* thêm địa chỉ Vercel đó và `http://localhost:5173` (để thử trên máy).
+4. **Supabase → Authentication → Emails → Templates → Reset Password:** đổi tiêu đề và nội dung sang tiếng Việt (mẫu bên dưới), giữ nguyên `{{ .ConfirmationURL }}`.
+5. (Tùy chọn) **Authentication → Rate Limits:** chỉnh số thư gửi mỗi giờ cho phù hợp.
 
-Nếu chưa cấu hình gửi thư, nút "Gửi mật khẩu mới" sẽ báo "Hệ thống chưa cấu hình gửi thư"; khi đó vẫn dùng được cách nhờ admin bấm "Đặt mật khẩu".
+Mẫu thư (Subject: `Đặt lại mật khẩu Salaman`):
+
+```html
+<h2>Đặt lại mật khẩu</h2>
+<p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Salaman của bạn.</p>
+<p><a href="{{ .ConfirmationURL }}">Bấm vào đây để đặt mật khẩu mới</a></p>
+<p>Liên kết dùng một lần và sẽ hết hạn sau ít phút. Nếu bạn không yêu cầu, hãy bỏ qua thư này; mật khẩu hiện tại vẫn dùng bình thường.</p>
+```
+
+Gmail cho gửi khoảng 500 thư/ngày, dư dùng cho hệ thống nội bộ. Nếu chưa cấu hình SMTP, Supabase chỉ gửi được rất ít thư và chỉ tới thành viên nhóm của dự án; khi đó dùng cách nhờ admin bấm "Đặt mật khẩu".
 
 ## Chạy
 

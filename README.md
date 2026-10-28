@@ -28,33 +28,9 @@ supabase/schema.sql   bảng, trigger, chính sách RLS
 ## Quên mật khẩu và đổi mật khẩu
 
 - **Đổi mật khẩu** (đang đăng nhập): bấm "Đổi mật khẩu" ở góc trên. Cần nhập mật khẩu hiện tại; đổi xong các thiết bị khác bị đăng xuất.
-- **Quên mật khẩu**: ở màn hình đăng nhập bấm "Quên mật khẩu?", nhập email. Supabase gửi email có **liên kết đặt lại mật khẩu**; bấm liên kết, web mở màn hình **Đặt mật khẩu mới** (nhập 2 lần, đủ điều kiện) rồi vào app.
-  - Người dùng bấm liên kết là bị buộc đặt mật khẩu mới trước khi vào được app (kể cả khi tải lại trang).
-  - Liên kết dùng một lần và hết hạn sau 1 giờ (mặc định của Supabase). Liên kết hết hạn thì màn hình đăng nhập báo rõ để yêu cầu lại.
-  - Hệ thống luôn báo "nếu email có tài khoản thì đã gửi", không tiết lộ email nào tồn tại.
-  - Đặt xong, các thiết bị khác bị đăng xuất.
-
-**Thiết lập gửi thư bằng Gmail (một lần, trong Supabase, không cần sửa code):**
-1. **Gmail:** bật *Xác minh 2 bước* cho tài khoản Gmail dùng để gửi thư, rồi tạo **Mật khẩu ứng dụng** tại https://myaccount.google.com/apppasswords (đặt tên "Salaman", Google cho 16 ký tự). Dùng chính mật khẩu ứng dụng này, không dùng mật khẩu Gmail.
-2. **Supabase → Authentication → Emails → SMTP Settings → Enable custom SMTP**:
-   - Sender email: địa chỉ Gmail đó (người nhận sẽ thấy đúng địa chỉ này)
-   - Sender name: `Salaman`
-   - Host: `smtp.gmail.com`, Port: `465`
-   - Username: địa chỉ Gmail đó; Password: mật khẩu ứng dụng 16 ký tự
-3. **Supabase → Authentication → URL Configuration:** *Site URL* = địa chỉ Vercel của web; *Redirect URLs* thêm địa chỉ Vercel đó và `http://localhost:5173` (để thử trên máy).
-4. **Supabase → Authentication → Emails → Templates → Reset Password:** đổi tiêu đề và nội dung sang tiếng Việt (mẫu bên dưới), giữ nguyên `{{ .ConfirmationURL }}`.
-5. (Tùy chọn) **Authentication → Rate Limits:** chỉnh số thư gửi mỗi giờ cho phù hợp.
-
-Mẫu thư (Subject: `Đặt lại mật khẩu Salaman`):
-
-```html
-<h2>Đặt lại mật khẩu</h2>
-<p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Salaman của bạn.</p>
-<p><a href="{{ .ConfirmationURL }}">Bấm vào đây để đặt mật khẩu mới</a></p>
-<p>Liên kết dùng một lần và sẽ hết hạn sau ít phút. Nếu bạn không yêu cầu, hãy bỏ qua thư này; mật khẩu hiện tại vẫn dùng bình thường.</p>
-```
-
-Gmail cho gửi khoảng 500 thư/ngày, dư dùng cho hệ thống nội bộ. Nếu chưa cấu hình SMTP, Supabase chỉ gửi được rất ít thư và chỉ tới thành viên nhóm của dự án; khi đó dùng cách nhờ admin bấm "Đặt mật khẩu".
+- **Quên mật khẩu:** hệ thống không gửi email. Người dùng **liên hệ quản trị viên**; admin vào **Quản lý tài khoản → Đặt mật khẩu** ở dòng của người đó, nhập mật khẩu mới (đủ điều kiện, nhập lại 2 lần) rồi gửi mật khẩu cho họ qua kênh riêng. Người dùng đăng nhập bằng mật khẩu đó và nên bấm "Đổi mật khẩu" để đặt mật khẩu riêng.
+  - Admin chỉ đặt lại được mật khẩu của **nhân viên** (editor/viewer) và của chính mình. Mật khẩu của admin khác không đặt lại được từ app; nếu một admin quên mật khẩu, xử lý trong Supabase → Authentication → Users.
+  - Việc đặt lại chạy qua Edge Function `admin-users` và được kiểm tra quyền admin ở phía máy chủ.
 
 ## Chạy
 

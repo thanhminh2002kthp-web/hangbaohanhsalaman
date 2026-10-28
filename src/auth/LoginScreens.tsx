@@ -22,7 +22,7 @@ export function SetupNeeded() {
   );
 }
 
-export function LoginScreen({ onForgot, notice }: { onForgot(): void; notice?: string }) {
+export function LoginScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,20 +41,17 @@ export function LoginScreen({ onForgot, notice }: { onForgot(): void; notice?: s
 
   return (
     <Card title="Đăng nhập để tiếp tục">
-      <p>Hệ thống nội bộ. Dùng tài khoản do quản trị viên cấp; nếu chưa có tài khoản, hãy liên hệ quản trị viên.</p>
+      <p>Hệ thống nội bộ. Dùng tài khoản do quản trị viên cấp.</p>
       <form onSubmit={submit} className="authform">
         <input type="email" required placeholder="email@gmail.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input type="password" required placeholder="Mật khẩu" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        {notice && !message && <div className="notice">{notice}</div>}
         {message && <div className="notice">{message}</div>}
         <button className="primary" type="submit" disabled={busy}>
           {busy ? 'Đang xử lý…' : 'Đăng nhập'}
         </button>
       </form>
-      <p style={{ marginTop: 16 }}>
-        <button className="link" type="button" onClick={onForgot}>
-          Quên mật khẩu?
-        </button>
+      <p style={{ marginTop: 16, fontSize: 13 }}>
+        <b>Quên mật khẩu?</b> Hãy liên hệ quản trị viên để được đặt lại mật khẩu. Chưa có tài khoản cũng liên hệ quản trị viên để được cấp.
       </p>
     </Card>
   );

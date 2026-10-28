@@ -114,7 +114,7 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
           <colgroup>
             {(cost
               ? ['190px', '170px', '150px', 'auto', '120px', '120px', '130px', '100px']
-              : ['190px', '170px', '150px', 'auto', '160px', '190px', '100px']
+              : ['190px', '170px', '150px', 'auto', '160px', '190px', '190px', '100px']
             ).map((width, i) => (
               <col key={i} style={{ width }} />
             ))}
@@ -134,6 +134,7 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
               ) : (
                 <>
                   <th>TRẠNG THÁI</th>
+                  <th>MÃ VẬN ĐƠN THU HỒI HÀNG LỖI</th>
                   <th>MÃ VẬN ĐƠN GỬI HÀNG MỚI</th>
                 </>
               )}
@@ -143,7 +144,7 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
           <tbody>
             {shown.length === 0 && (
               <tr>
-                <td colSpan={cost ? 8 : 7} className="empty">
+                <td colSpan={8} className="empty">
                   Không có hồ sơ phù hợp.
                 </td>
               </tr>
@@ -194,7 +195,8 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
                         <PriorityBadge priority={r.priority} />
                       </span>
                     </td>
-                    <td>{r.outbound.slice(0, 32) || '—'}</td>
+                    <td>{r.inbound || '—'}</td>
+                    <td>{r.outbound || '—'}</td>
                   </>
                 )}
                 <td>
@@ -228,3 +230,4 @@ export function RecordList({ rows, cost = false, paged = true, page = 1, onPage,
     </div>
   );
 }
+

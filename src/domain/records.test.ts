@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { costReviewError, emptyFilters, emptyRecord, fee, filterRecords, maskPhone, net, parseBackup, toCsv, today } from './records';
+import { costReviewError, emptyFilters, emptyRecord, fee, filterRecords, net, parseBackup, toCsv, today } from './records';
 
 const rec = (patch = {}) => ({ ...emptyRecord(), ...patch });
 
@@ -52,15 +52,6 @@ describe('lọc hồ sơ', () => {
     const data = [rec({ id: 'now', received: ym(0) }), rec({ id: 'prev', received: ym(-1) }), rec({ id: 'old', received: ym(-5) })];
     expect(filterRecords(data, { ...emptyFilters, datePreset: 'this-month' }).map((r) => r.id)).toEqual(['now']);
     expect(filterRecords(data, { ...emptyFilters, datePreset: 'last-month' }).map((r) => r.id)).toEqual(['prev']);
-  });
-});
-
-describe('maskPhone', () => {
-  it('che phần giữa của số điện thoại', () => {
-    expect(maskPhone('0982123456')).toBe('0982 ••• 456');
-    expect(maskPhone('0982 123 456')).toBe('0982 ••• 456');
-    expect(maskPhone('12345')).toBe('12345');
-    expect(maskPhone('')).toBe('');
   });
 });
 

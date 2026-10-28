@@ -26,7 +26,7 @@ input::placeholder,textarea::placeholder{color:#000;opacity:1}
 @media(min-width:651px) and (max-width:1000px){.brand>span{font-size:25px}.brand small{font-size:9px;letter-spacing:0}}
 
 /* Cột số điện thoại riêng và các hàng hồ sơ có cùng chiều cao. */
-.records-table{table-layout:fixed;min-width:1120px}
+.records-table{table-layout:fixed;min-width:1400px}
 .records-table-cost{min-width:1240px}
 .records-table th,.records-table td{max-width:none;vertical-align:middle;overflow-wrap:anywhere}
 .records-table tbody tr{height:96px}
@@ -56,3 +56,4 @@ input::placeholder,textarea::placeholder{color:#000;opacity:1}
 .status-select.status-complete,.status-select option.status-complete{background:#dcfce7;color:#15803d}
 .status-select.status-refund,.status-select option.status-refund{background:#fce7f3;color:#be185d}
 .status-select.status-rejected,.status-select option.status-rejected{background:#fee2e2;color:#b91c1c}
+

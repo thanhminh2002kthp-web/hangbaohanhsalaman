@@ -43,7 +43,11 @@ npm run build    # build bản chạy thật vào dist/
 
 Lần đầu: đăng nhập bằng tài khoản admin ở bước 4. Vào **Quản lý tài khoản** để tạo tài khoản nhân viên, đổi quyền, khóa hoặc đặt lại mật khẩu.
 
-## Triển khai Vercel
+## Google Sheets hai chiều
+
+Quản trị viên có thể đồng bộ theo yêu cầu trong **Dữ liệu & hướng dẫn**. Cần cấu hình tài khoản dịch vụ Google và triển khai Edge Function trước khi dùng. Xem [hướng dẫn kích hoạt, xử lý xung đột và giới hạn](docs/google-sheets-sync.md).
+
+## Triển khai Vercel (frontend)
 
 Import repo, framework **Vite**, thêm hai biến môi trường `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY`.
 

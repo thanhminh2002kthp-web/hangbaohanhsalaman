@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { GoogleSheetsSync } from '../components/GoogleSheetsSync';
 import { insertMissing } from '../api/records';
 import { ImportDialog } from '../components/ImportDialog';
 import { download, parseBackup, today, toCsv } from '../domain/records';
@@ -42,6 +43,7 @@ export function SettingsView() {
         onCreate={() => openEditor(null)}
       />
       <div className="grid">
+        <GoogleSheetsSync />
         <div className="panel help">
           <h2>Dữ liệu & sao lưu</h2>
           <p>
